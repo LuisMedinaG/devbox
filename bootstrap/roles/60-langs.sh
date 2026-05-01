@@ -5,7 +5,7 @@ source "$SCRIPT_DIR/lib/common.sh"
 # Node via fnm.
 as_user '
   if [[ ! -d "$HOME/.fnm" ]]; then
-    curl -fsSL https://fnm.vercel.app/install | bash -s -- --skip-shell
+    curl -fsSL https://fnm.vercel.app/install | bash -s -- --skip-shell --install-dir "$HOME/.fnm"
   fi
   export PATH="$HOME/.fnm:$PATH"
   eval "$($HOME/.fnm/fnm env)"
