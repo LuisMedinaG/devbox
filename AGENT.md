@@ -27,7 +27,11 @@ bootstrap/        Idempotent setup script; works on Fly and Hetzner
   Swap file lives at `/home/swapfile`. Bootstrap markers at `/var/lib/bootstrap/` are ephemeral
   (safe — bootstrap is idempotent).
 - **No public ports** — `fly ssh console` connects via Fly's 6PN (WireGuard, `fdaa::/8`).
-  Tailscale SSH is the target for direct access. ufw is skipped on Fly (`SKIP_UFW=1` default).
+  Tailscale SSH is the primary access method. `fly ssh console` is the fallback.
+  ufw is skipped on Fly (`SKIP_UFW=1` default); enabled on Hetzner (`SKIP_UFW=0`).
+- **Tailscale on both hosts** — Fly machine: `lumedina-devbox` (`100.64.54.128`).
+  Hetzner machine: `devbox-hetzner` (`178.104.247.3`). Both on the `betousky01@` tailnet.
+  iOS access via Tailscale app + Terminus (password auth over WireGuard).
 - **Bootstrap defaults**: `USERNAME=luis`, `TIMEZONE=America/Mexico_City`, `SKIP_UFW=1`.
   Override at call site; `SKIP_UFW=0` for Hetzner.
 

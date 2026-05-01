@@ -5,7 +5,7 @@ survives disconnects. Same bootstrap targets Hetzner for a traditional VPS setup
 
 - **Machine**: `performance-2x` (2 vCPU, 4 GB RAM), region `dfw`
 - **Storage**: 40 GB persistent volume mounted at `/home`
-- **Access**: `fly ssh console` initially; Tailscale SSH later
+- **Access**: Tailscale SSH (primary) — `fly ssh console` is the fallback
 - **No public ports**
 
 ---
@@ -188,6 +188,64 @@ TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
 su - luis          # or: fly ssh console --user luis
 claude             # complete device-flow auth (opens URL, do this on your Mac)
 tmux new -s work
+```
+
+---
+
+## Access
+
+### Tailscale setup (one-time per host)
+
+1. Get an auth key at [tailscale.com/admin/settings/keys](https://tailscale.com/admin/settings/keys)
+   - **Reusable**: yes — **Ephemeral**: no — **Expiry**: 90 days or none
+2. On the machine, run the tailscale role:
+   ```bash
+   TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh 30-tailscale
+   ```
+3. Rename the machine in [tailscale.com/admin/machines](https://tailscale.com/admin/machines)
+   - Fly machine registers as the Fly machine ID — rename to `lumedina-devbox`
+   - Hetzner machine registers as its hostname — rename to `devbox-hetzner`
+4. Verify from your Mac:
+   ```bash
+   tailscale status
+   ssh devbox-flyio
+   ssh devbox-hetzner
+   ```
+
+### Mac `~/.ssh/config`
+
+```
+Host devbox-flyio
+  HostName lumedina-devbox
+  User luis
+
+Host devbox-hetzner
+  HostName devbox-hetzner
+  User luis
+  IdentityFile ~/.ssh/id_ed25519
+```
+
+> Use the Tailscale IP (`100.x.x.x`) instead of the hostname until MagicDNS resolves it.
+
+### iOS — Tailscale + Terminus
+
+1. Install **Tailscale** from the App Store — sign in with the same account
+2. Set a password for the `luis` user on the machine (Terminus uses password auth):
+   ```bash
+   passwd luis
+   ```
+3. In **Terminus**: add a new host
+   - **Host**: `100.64.54.128` (Fly) or the Tailscale IP of the Hetzner box
+   - **User**: `luis`
+   - **Auth**: password
+
+The connection goes over Tailscale WireGuard — the password is never exposed to the internet.
+
+### Fallback (no Tailscale)
+
+```bash
+fly ssh console             # Fly only — requires flyctl installed
+fly ssh console --user luis
 ```
 
 ---
