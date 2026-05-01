@@ -1,0 +1,14 @@
+app = "luis-devbox"
+primary_region = "qro"   # Querétaro, closest to Guadalajara
+
+[build]
+  image = "ubuntu:24.04"
+
+[[mounts]]
+  source = "devbox_data"
+  destination = "/home"
+  initial_size = "40gb"
+
+[[vm]]
+  size = "performance-2x"   # 2 vCPU, 4 GB RAM
+  memory = "4gb"
