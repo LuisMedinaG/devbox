@@ -50,3 +50,32 @@ apt_update_once() {
 as_user() {
   sudo -u "$USERNAME" -H bash -lc "$*"
 }
+
+# Returns 0 if systemd is PID 1 (Hetzner/VPS), 1 if not (Fly, containers).
+have_systemd() {
+  [ "$(cat /proc/1/comm 2>/dev/null)" = "systemd" ]
+}
+
+# Enable + start a system service.
+# On systemd hosts: systemctl enable --now.
+# On non-systemd hosts (Fly): start the binary directly; /start.sh handles future boots.
+enable_service() {
+  local name="$1" bin="${2:-}"
+  if have_systemd; then
+    systemctl enable --now "$name"
+  elif [ -n "$bin" ] && [ -x "$bin" ]; then
+    "$bin" &
+    log "started $name directly (no systemd; /start.sh handles reboots)"
+  else
+    warn "$name: systemd unavailable and no fallback binary — will start on next boot via /start.sh"
+  fi
+}
+
+# Reload sshd config.
+reload_sshd() {
+  if have_systemd; then
+    systemctl reload ssh
+  elif [ -f /var/run/sshd.pid ]; then
+    kill -HUP "$(cat /var/run/sshd.pid)"
+  fi
+}

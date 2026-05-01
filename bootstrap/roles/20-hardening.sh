@@ -14,7 +14,7 @@ ensure_kv "ChallengeResponseAuthentication" "no" "$SSHD"
 ensure_kv "X11Forwarding"          "no"  "$SSHD"
 
 sshd -t
-systemctl reload ssh
+reload_sshd
 
 # Skip ufw/fail2ban when SKIP_UFW=1 (e.g. Fly.io — no public ports, handled at Fly layer).
 if [[ -z "${SKIP_UFW:-}" ]]; then
@@ -23,5 +23,5 @@ if [[ -z "${SKIP_UFW:-}" ]]; then
   ufw default allow outgoing
   ufw allow OpenSSH
   ufw --force enable
-  systemctl enable --now fail2ban
+  enable_service fail2ban /usr/sbin/fail2ban-server
 fi

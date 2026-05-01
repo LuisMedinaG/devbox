@@ -17,6 +17,6 @@ https://download.docker.com/linux/ubuntu $(. /etc/os-release; echo "$VERSION_COD
 fi
 
 usermod -aG docker "$USERNAME"
-systemctl enable --now docker
+enable_service docker /usr/bin/dockerd
 
 install -d -o "$USERNAME" -g "$USERNAME" /srv/stacks
