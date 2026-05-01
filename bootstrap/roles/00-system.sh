@@ -3,10 +3,10 @@ set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
 apt_update_once
-apt_install ca-certificates curl gnupg lsb-release software-properties-common \
-            unattended-upgrades apt-listchanges tzdata
+apt_install ca-certificates curl gnupg lsb-release tzdata
 
-timedatectl set-timezone "$TIMEZONE"
+ln -sf "/usr/share/zoneinfo/${TIMEZONE}" /etc/localtime
+echo "$TIMEZONE" > /etc/timezone
 
 cat >/etc/apt/apt.conf.d/20auto-upgrades <<'EOF'
 APT::Periodic::Update-Package-Lists "1";
