@@ -1,0 +1,13 @@
+# Local state, never commit
+/var/
+*.done
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Secrets — never commit real keys
+config/ssh-authorized-keys.local
+*.env
+*.secret

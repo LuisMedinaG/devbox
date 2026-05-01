@@ -1,14 +1,19 @@
-app = "luis-devbox"
-primary_region = "qro"   # Querétaro, closest to Guadalajara
+app = "lumedina-devbox"
+primary_region = "dfw"
 
 [build]
-  image = "ubuntu:24.04"
+  dockerfile = "Dockerfile"
 
 [[mounts]]
   source = "devbox_data"
   destination = "/home"
-  initial_size = "40gb"
 
 [[vm]]
-  size = "performance-2x"   # 2 vCPU, 4 GB RAM
+  size = "performance-2x"
   memory = "4gb"
+
+[[restart]]
+  policy = "always"
+
+# No [[services]] = no public ports, no traffic-based auto-stop.
+# Machine runs until manually stopped or process crashes (restarted by policy above).
