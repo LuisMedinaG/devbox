@@ -9,6 +9,7 @@ fi
 usermod -aG sudo "$USERNAME"
 have_systemd && loginctl enable-linger "$USERNAME"
 
+mkdir -p /etc/sudoers.d
 echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/90-"$USERNAME"
 chmod 440 /etc/sudoers.d/90-"$USERNAME"
 
