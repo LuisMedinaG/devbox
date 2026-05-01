@@ -6,8 +6,9 @@ set -euo pipefail
 
 : "${USERNAME:=luis}"
 : "${TIMEZONE:=America/Mexico_City}"
-: "${TS_AUTHKEY:=}"   # optional, prefills tailscale auth
-export USERNAME TIMEZONE TS_AUTHKEY
+: "${TS_AUTHKEY:=}"     # optional, prefills tailscale auth
+: "${SKIP_UFW:=1}"      # set to 0 on hosts with a public SSH port (e.g. Hetzner)
+export USERNAME TIMEZONE TS_AUTHKEY SKIP_UFW
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export SCRIPT_DIR
