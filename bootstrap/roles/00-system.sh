@@ -16,7 +16,7 @@ EOF
 
 # 2 GB swap if none exists.
 # Use /home/swapfile so it lives on the persistent volume (root may be overlayfs).
-SWAPFILE="${SWAPFILE:-/home/swapfile}"
+SWAPFILE="${SWAPFILE:-/swapfile}"
 if ! swapon --show | grep -q .; then
   fallocate -l 2G "$SWAPFILE"
   chmod 600 "$SWAPFILE"

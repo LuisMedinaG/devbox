@@ -13,7 +13,8 @@ apt_install \
   unzip zip xz-utils \
   ca-certificates gnupg \
   python3 python3-venv python3-pip \
-  age
+  age \
+  mosh
 
 [[ -x /usr/bin/fdfind ]] && ln -sf /usr/bin/fdfind /usr/local/bin/fd
 [[ -x /usr/bin/batcat ]] && ln -sf /usr/bin/batcat /usr/local/bin/bat

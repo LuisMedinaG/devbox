@@ -7,7 +7,7 @@ if ! id -u "$USERNAME" >/dev/null 2>&1; then
 fi
 
 usermod -aG sudo "$USERNAME"
-have_systemd && loginctl enable-linger "$USERNAME"
+loginctl enable-linger "$USERNAME"
 
 mkdir -p /etc/sudoers.d
 echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/90-"$USERNAME"

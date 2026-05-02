@@ -16,12 +16,12 @@ ensure_kv "X11Forwarding"          "no"  "$SSHD"
 sshd -t
 reload_sshd
 
-# Skip ufw/fail2ban when SKIP_UFW=1 (e.g. Fly.io — no public ports, handled at Fly layer).
-if [[ -z "${SKIP_UFW:-}" ]]; then
+if [[ "${SKIP_UFW:-0}" == "0" ]]; then
   ufw --force reset >/dev/null
   ufw default deny incoming
   ufw default allow outgoing
   ufw allow OpenSSH
+  ufw allow 60000:61000/udp    # mosh
   ufw --force enable
-  enable_service fail2ban /usr/sbin/fail2ban-server
+  enable_service fail2ban
 fi
