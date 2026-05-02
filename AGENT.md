@@ -15,6 +15,23 @@ bootstrap/
                   (real ssh-authorized-keys is gitignored; copy from .example)
 ```
 
+## Division of responsibility
+
+This repo is a **system provisioner** — it runs as root and owns everything at the OS/package layer. It does not own config files in `~`.
+
+| Layer | Repo | What it owns |
+|---|---|---|
+| System | **devbox** (this repo) | apt packages, users, SSH/firewall/network, runtimes, services |
+| User config | **dotfiles** (`LuisMedinaG/.dotfiles`, via yadm) | `.zshrc`, `.zshenv`, `.config/tmux/`, `.gitconfig`, nvim, plugins |
+
+**Handoff sequence:**
+1. `bash bootstrap.sh` (root) — provisions machine, installs yadm
+2. Role 50 writes `~/.zshrc.local` with machine-specific PATH entries (fnm, cargo, go) — not tracked by yadm
+3. `su - luis` → `yadm clone git@github.com:LuisMedinaG/.dotfiles.git` → `yadm bootstrap`
+4. Dotfiles own all config from here. `~/.zshrc.local` persists across yadm operations.
+
+**Rule:** Bootstrap must never write config into files that dotfiles owns (`.zshrc`, `.zshenv`, `.gitconfig`, etc.). Machine-specific shell entries belong in `~/.zshrc.local` or `~/.zshenv.local`.
+
 ## Key constraints
 
 - **Hetzner has full systemd** — use `systemctl` directly. `enable_service` is a thin wrapper around `systemctl enable --now`.
@@ -31,11 +48,13 @@ bootstrap/
 | 10-user | create `luis`, passwordless sudo, SSH keys, loginctl linger |
 | 20-hardening | harden sshd, ufw (allow SSH + Mosh), fail2ban |
 | 30-tailscale | install + `tailscale up --ssh` |
-| 40-dev-tools | git, tmux, zsh, ripgrep, fzf, btop, python3, mosh |
-| 50-shell | zsh default, starship, tmux config, .zshrc |
+| 35-gpu | NVIDIA driver + CDI; no-op on CPU hosts (`GPU_PROFILE=none`) |
+| 40-dev-tools | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, python3, mosh, yadm |
+| 45-agent-sandbox | rootless Podman + `agent` system user (no sudo) |
+| 50-shell | set zsh as default; write `~/.zshrc.local` with machine PATH entries |
 | 60-langs | Node (fnm → `~/.fnm`), uv, Rust, Go |
-| 70-claude-code | `npm install -g @anthropic-ai/claude-code`; run `claude` as `luis` to auth |
-| 80-docker | Docker CE, `/srv/stacks` |
+| 70-claude-code | builds agent container image; no host claude binary |
+| 80-docker | rootless Podman config; optional hardened Docker (`INSTALL_DOCKER=1`) |
 | 90-backups | restic skeleton (activation is manual) |
 
 ## Editing guidelines

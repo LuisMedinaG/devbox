@@ -68,7 +68,7 @@ cat ~/.ssh/id_ed25519.pub >> bootstrap/config/ssh-authorized-keys
 apt-get update -y && apt-get install -y git
 
 # Clone this repo
-git clone https://github.com/LuisMedinaG/fly-devbox.git ~/projects/devbox
+git clone https://github.com/LuisMedinaG/devbox.git ~/projects/devbox
 cd ~/projects/devbox/bootstrap
 
 # Run full bootstrap
@@ -89,20 +89,38 @@ TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
 | 10 | user | create `luis`, passwordless sudo, SSH keys |
 | 20 | hardening | harden sshd, ufw, fail2ban |
 | 30 | tailscale | install + connect tailscale-ssh |
-| 40 | dev-tools | git, tmux, zsh, ripgrep, fzf, btop, python3, mosh |
-| 50 | shell | zsh default, starship prompt, tmux config |
+| 35 | gpu | NVIDIA driver + CDI (no-op on CPU hosts) |
+| 40 | dev-tools | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, python3, mosh, yadm |
+| 45 | agent-sandbox | rootless Podman + `agent` system user (no sudo) |
+| 50 | shell | set zsh as default shell; write `~/.zshrc.local` with machine PATH entries |
 | 60 | langs | Node (fnm), Python (uv), Rust, Go |
-| 70 | claude-code | `npm install -g @anthropic-ai/claude-code` |
-| 80 | docker | Docker CE + compose, `/srv/stacks` |
+| 70 | claude-code | builds agent container image with Claude Code inside |
+| 80 | docker | rootless Podman config; optional hardened Docker |
 | 90 | backups | restic skeleton (activation is manual) |
 
-### After bootstrap
+### After bootstrap — deploy dotfiles
+
+Bootstrap provisions the system. Dotfiles configure the user environment. Run these as `luis`:
 
 ```bash
 su - luis
-claude             # complete device-flow auth (opens URL, do this on your Mac)
+
+# Deploy dotfiles (yadm was installed by role 40)
+yadm clone git@github.com:LuisMedinaG/.dotfiles.git
+
+# Run dotfiles bootstrap phases (Homebrew on macOS; Linux tooling on Linux)
+yadm bootstrap
+
+# Authenticate Claude Code (opens a URL — complete this on your Mac)
+claude
+
+# Start a persistent work session
 tmux new -s work
 ```
+
+`~/.zshrc.local` (written by role 50, not tracked by yadm) holds machine-specific PATH
+entries for fnm, cargo, and Go. It survives `yadm clone` and is sourced automatically
+by `.zshrc`.
 
 ---
 
