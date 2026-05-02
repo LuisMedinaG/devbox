@@ -21,7 +21,7 @@ hcloud context create devbox     # paste API token from console.hetzner.cloud
 
 ```bash
 # Upload your SSH key if not already in Hetzner
-hcloud ssh-key create --name macbook --public-key-file ~/.ssh/id_ed25519.pub
+hcloud ssh-key create --name macbook --public-key "$(cat ~/.ssh/id_ed25519.pub)"
 
 # Create server — CX23: 2 vCPU, 4 GB RAM, 40 GB SSD
 hcloud server create \
