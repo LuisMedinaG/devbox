@@ -5,10 +5,14 @@
 set -euo pipefail
 
 : "${USERNAME:=luis}"
+: "${ADMIN_USERNAME:=$USERNAME}"  # separate admin account; defaults to USERNAME for dev boxes
+: "${AGENT_USER:=agent}"          # dedicated sandbox user, no sudo
 : "${TIMEZONE:=America/Mexico_City}"
-: "${TS_AUTHKEY:=}"          # optional, prefills tailscale auth
-: "${SKIP_FIREWALL:=${SKIP_UFW:-0}}"   # set to 1 to skip ufw + fail2ban (sshd hardening still runs)
-export USERNAME TIMEZONE TS_AUTHKEY SKIP_FIREWALL
+: "${TS_AUTHKEY:=}"               # optional, prefills tailscale auth
+: "${SKIP_FIREWALL:=${SKIP_UFW:-0}}"  # set to 1 to skip ufw + fail2ban (sshd hardening still runs)
+: "${INSTALL_DOCKER:=0}"          # set to 1 to install rootful Docker alongside Podman
+: "${GPU_PROFILE:=consumer}"      # none | consumer | datacenter
+export USERNAME ADMIN_USERNAME AGENT_USER TIMEZONE TS_AUTHKEY SKIP_FIREWALL INSTALL_DOCKER GPU_PROFILE
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export SCRIPT_DIR
@@ -25,11 +29,13 @@ ROLES=(
   10-user
   20-hardening
   30-tailscale
+  35-gpu          # NVIDIA driver + CDI (no-op on CPU hosts)
   40-dev-tools
+  45-agent-sandbox  # rootless Podman + agent system user (no sudo)
   50-shell
   60-langs
-  70-claude-code
-  80-docker
+  70-claude-code  # builds agent container image; no host claude binary
+  80-docker       # rootless Podman config + optional hardened Docker
   90-backups
 )
 
