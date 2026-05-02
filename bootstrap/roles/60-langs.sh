@@ -20,6 +20,13 @@ as_user '
   fi
 '
 
+# Bun.
+as_user '
+  if ! command -v bun >/dev/null 2>&1; then
+    curl -fsSL https://bun.sh/install | bash
+  fi
+'
+
 # Rust.
 as_user '
   if [[ ! -d "$HOME/.cargo" ]]; then
