@@ -68,8 +68,8 @@ cat ~/.ssh/id_ed25519.pub >> bootstrap/config/ssh-authorized-keys
 apt-get update -y && apt-get install -y git
 
 # Clone this repo
-git clone https://github.com/LuisMedinaG/fly-devbox.git /opt/devbox
-cd /opt/devbox/bootstrap
+git clone https://github.com/LuisMedinaG/fly-devbox.git ~/projects/devbox
+cd ~/projects/devbox/bootstrap
 
 # Run full bootstrap
 bash bootstrap.sh
