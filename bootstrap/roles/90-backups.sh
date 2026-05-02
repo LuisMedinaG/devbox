@@ -4,8 +4,13 @@ source "$SCRIPT_DIR/lib/common.sh"
 
 apt_install restic
 
-install -d -o "$USERNAME" -g "$USERNAME" "/home/$USERNAME/.config/restic"
-ENV_FILE="/home/$USERNAME/.config/restic/env"
+HOME_DIR="/home/$USERNAME"
+
+# The restic unit below backs up ~/projects; create it so the first timer
+# fire doesn't fail with "no such file or directory".
+install -d -o "$USERNAME" -g "$USERNAME" "$HOME_DIR/projects"
+install -d -o "$USERNAME" -g "$USERNAME" "$HOME_DIR/.config/restic"
+ENV_FILE="$HOME_DIR/.config/restic/env"
 if [[ ! -f "$ENV_FILE" ]]; then
   cat >"$ENV_FILE" <<'EOF'
 # Fill in and `chmod 600` this file before enabling the timer.
@@ -18,8 +23,8 @@ EOF
   chmod 600 "$ENV_FILE"
 fi
 
-install -d -o "$USERNAME" -g "$USERNAME" "/home/$USERNAME/.config/systemd/user"
-cat >"/home/$USERNAME/.config/systemd/user/restic-backup.service" <<'EOF'
+install -d -o "$USERNAME" -g "$USERNAME" "$HOME_DIR/.config/systemd/user"
+cat >"$HOME_DIR/.config/systemd/user/restic-backup.service" <<'EOF'
 [Unit]
 Description=Restic backup
 
@@ -32,7 +37,7 @@ ExecStartPost=/usr/bin/restic forget --prune \
   --keep-daily 7 --keep-weekly 4 --keep-monthly 6
 EOF
 
-cat >"/home/$USERNAME/.config/systemd/user/restic-backup.timer" <<'EOF'
+cat >"$HOME_DIR/.config/systemd/user/restic-backup.timer" <<'EOF'
 [Unit]
 Description=Daily restic backup
 
@@ -45,5 +50,5 @@ RandomizedDelaySec=30m
 WantedBy=timers.target
 EOF
 
-chown -R "$USERNAME":"$USERNAME" "/home/$USERNAME/.config/systemd"
+chown -R "$USERNAME":"$USERNAME" "$HOME_DIR/.config/systemd"
 log "Backups: edit ~/.config/restic/env, then 'systemctl --user enable --now restic-backup.timer'"

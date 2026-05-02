@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# OpenCode plugin state (machine-local, not part of the bootstrap)
+.opencode/

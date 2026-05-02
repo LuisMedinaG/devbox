@@ -1,4 +1,0 @@
-# Paste your public keys here, one per line, before running bootstrap.
-# Example:
-# ssh-ed25519 AAAAC3NzaC1lZDI1... luis@macbook
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDlBlK0FR2qbE1UVZWY6dCMz13oIvviNrzaHtE91WDoO luis.hmedinag@gmail.com

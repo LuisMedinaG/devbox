@@ -10,7 +10,9 @@ On a fresh host as root:
 git clone <this-repo> /opt/bootstrap
 cd /opt/bootstrap
 
-# 1. Add your SSH public key(s) to config/ssh-authorized-keys
+# 1. Create config/ssh-authorized-keys (gitignored) from the template:
+#    cp config/ssh-authorized-keys.example config/ssh-authorized-keys
+#    Then add your pubkey(s). Bootstrap dies if this file is missing.
 
 # 2. Run everything:
 USERNAME=luis TIMEZONE=America/Mexico_City ./bootstrap.sh
@@ -53,5 +55,4 @@ Drop compose stacks under `/srv/stacks/<service>/compose.yml` and add a `roles/1
 All roles are safe to re-run. Helpers in `lib/common.sh`:
 - `ensure_line` — append-if-missing
 - `ensure_kv` — replace-or-append directives
-- `once` — marker-file gating for one-shot work
 - `apt_update_once` — caches apt update for 60 minutes

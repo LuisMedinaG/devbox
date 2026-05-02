@@ -52,11 +52,14 @@ Runs on a fresh host as root. Idempotent — safe to re-run.
 
 ### Before first run
 
-Add your SSH public key to `bootstrap/config/ssh-authorized-keys`:
+Create `bootstrap/config/ssh-authorized-keys` (gitignored — never committed) from the template and paste in your pubkey(s):
 
 ```bash
+cp bootstrap/config/ssh-authorized-keys.example bootstrap/config/ssh-authorized-keys
 cat ~/.ssh/id_ed25519.pub >> bootstrap/config/ssh-authorized-keys
 ```
+
+`bootstrap.sh` refuses to run without this file — role 20 disables password auth, so no keys = locked out.
 
 ### On the machine
 
@@ -116,25 +119,25 @@ tmux new -s work
 3. Verify from your Mac:
    ```bash
    tailscale status
-   ssh hetzner-devbox
+   ssh <devbox-tailscale-name>
    ```
 
 ### Mac `~/.ssh/config`
 
 ```
-Host hetzner-devbox
-  HostName hetzner-devbox
+Host devbox
+  HostName <devbox-tailscale-name-or-ip>
   User luis
   IdentityFile ~/.ssh/id_ed25519
 ```
 
-> Use the Tailscale IP (`100.118.147.126`) until MagicDNS resolves the hostname.
+> Use the Tailscale IP (visible in `tailscale status`) until MagicDNS resolves the hostname.
 
 ### iOS — Terminus + Mosh
 
 1. Install **Tailscale** from the App Store — sign in with the same account
 2. In **Terminus**: add a new host
-   - **Host**: `100.118.147.126` (Tailscale IP)
+   - **Host**: your devbox Tailscale IP (from `tailscale status`)
    - **User**: `luis`
    - **Use Mosh**: enabled (leave the mosh-server command at default)
    - **Auth**: SSH key (password auth is disabled by hardening; add your key in Terminus → SSH.id)
@@ -149,5 +152,7 @@ Mosh handles roaming between WiFi and cellular without dropping the session.
 |----------|---------|-------------|
 | `USERNAME` | `luis` | User to create |
 | `TIMEZONE` | `America/Mexico_City` | Host timezone |
-| `SKIP_UFW` | `0` | Set to `1` to skip ufw/fail2ban |
+| `SKIP_FIREWALL` | `0` | Set to `1` to skip ufw + fail2ban. **sshd hardening still runs** (root login, password auth, etc. are disabled regardless). |
 | `TS_AUTHKEY` | _(empty)_ | Tailscale auth key for unattended connect |
+
+> Legacy: `SKIP_UFW` is still honored as a fallback when `SKIP_FIREWALL` is unset.
