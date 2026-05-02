@@ -1,0 +1,6 @@
+# Paste your public keys here, one per line, then save as
+# `ssh-authorized-keys` (no extension). Bootstrap reads that file —
+# this `.example` is gitignored-by-name and only kept as a template.
+#
+# Example:
+# ssh-ed25519 AAAAC3NzaC1lZDI1... you@laptop

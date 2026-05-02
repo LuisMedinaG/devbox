@@ -13,6 +13,8 @@ https://download.docker.com/linux/ubuntu $(. /etc/os-release; echo "$VERSION_COD
     > /etc/apt/sources.list.d/docker.list
 
   apt-get update -y
+  # Keep apt_update_once's marker in sync so subsequent roles don't redo it.
+  mkdir -p /var/lib/bootstrap && touch /var/lib/bootstrap/apt-updated
   apt_install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 fi
 

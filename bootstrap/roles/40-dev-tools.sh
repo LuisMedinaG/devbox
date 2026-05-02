@@ -13,7 +13,7 @@ apt_install \
   ca-certificates gnupg \
   python3 python3-venv python3-pip \
   age \
-  mosh
+  mosh   # the metapackage; pulls mosh-server which UFW exposes on 60000-61000/udp
 
 [[ -x /usr/bin/fdfind ]] && ln -sf /usr/bin/fdfind /usr/local/bin/fd
 [[ -x /usr/bin/batcat ]] && ln -sf /usr/bin/batcat /usr/local/bin/bat

@@ -3,7 +3,10 @@ set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
 HOME_DIR="/home/$USERNAME"
-chsh -s "$(command -v zsh)" "$USERNAME"
+ZSH_BIN="$(command -v zsh)"
+if [[ "$(getent passwd "$USERNAME" | cut -d: -f7)" != "$ZSH_BIN" ]]; then
+  chsh -s "$ZSH_BIN" "$USERNAME"
+fi
 
 if ! command -v starship >/dev/null 2>&1; then
   curl -fsSL https://starship.rs/install.sh | sh -s -- -y
