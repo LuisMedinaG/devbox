@@ -50,11 +50,6 @@ hcloud server delete devbox      # permanent — back up first
 
 Runs on a fresh host as root. Idempotent — safe to re-run.
 
-### Before running — get a Tailscale auth key
-
-Go to [login.tailscale.com/admin/settings/keys](https://login.tailscale.com/admin/settings/keys) → **Generate auth key**
-- **Reusable**: yes — **Ephemeral**: no
-
 ### On the machine
 
 ```bash
@@ -64,7 +59,13 @@ apt-get update -y && apt-get install -y git
 git clone https://github.com/LuisMedinaG/devbox.git ~/projects/devbox
 cd ~/projects/devbox/bootstrap
 
+# TS_AUTHKEY is optional — connects Tailscale unattended so you don't need
+# a second SSH login. Get one at:
+# login.tailscale.com/admin/settings/keys → Generate auth key (Reusable: yes, Ephemeral: no)
 TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
+
+# Without it, bootstrap still completes. Connect Tailscale manually after:
+#   sudo tailscale up --ssh
 ```
 
 ### Roles
