@@ -117,8 +117,9 @@ by `.zshrc`.
 
 ### Tailscale setup (one-time)
 
-1. Get an auth key at [tailscale.com/admin/settings/keys](https://tailscale.com/admin/settings/keys)
-   - **Reusable**: yes — **Ephemeral**: no
+1. Go to [login.tailscale.com/admin/settings/keys](https://login.tailscale.com/admin/settings/keys) → **Generate auth key**
+   - **Reusable**: yes — **Ephemeral**: no — **Tags**: none required
+   - Copy the `tskey-auth-...` value
 2. Run the tailscale role with the key:
    ```bash
    TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh 30-tailscale
