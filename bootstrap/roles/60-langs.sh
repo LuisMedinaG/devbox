@@ -11,8 +11,7 @@ source "$VERSIONS_CONF"
 
 # Require explicit sha256 for every tool; die early with a clear message.
 : "${FNM_VERSION:?Set FNM_VERSION in config/versions.conf}"
-: "${FNM_SHA256_AMD64:?Set FNM_SHA256_AMD64 in config/versions.conf}"
-: "${FNM_SHA256_ARM64:?Set FNM_SHA256_ARM64 in config/versions.conf}"
+: "${FNM_SHA256:?Set FNM_SHA256 in config/versions.conf}"
 
 : "${UV_VERSION:?Set UV_VERSION in config/versions.conf}"
 : "${UV_SHA256_AMD64:?Set UV_SHA256_AMD64 in config/versions.conf}"
@@ -40,12 +39,12 @@ case "$(dpkg --print-architecture)" in
 esac
 
 # --- Node via fnm ---
+# fnm-linux.zip is a single binary for all arches; one sha256 covers both.
 if ! as_user '[[ -x "$HOME/.fnm/fnm" ]]'; then
   log "Installing fnm ${FNM_VERSION} ..."
-  FNM_SHA256_VAR="FNM_SHA256_${ARCH^^}"
   FNM_URL="https://github.com/Schniz/fnm/releases/download/v${FNM_VERSION}/fnm-linux.zip"
   TMP_ZIP=$(mktemp --suffix=.zip)
-  download_verify "$FNM_URL" "$TMP_ZIP" "${!FNM_SHA256_VAR}"
+  download_verify "$FNM_URL" "$TMP_ZIP" "$FNM_SHA256"
   TMP_DIR=$(mktemp -d)
   unzip -q "$TMP_ZIP" -d "$TMP_DIR"
   install -d -m 755 -o "$USERNAME" -g "$USERNAME" "/home/$USERNAME/.fnm"
