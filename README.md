@@ -14,7 +14,7 @@ Personal cloud dev box running Claude Code on Hetzner. Persistent tmux sessions,
 
 ```bash
 brew install hcloud
-hcloud context create devbox     # paste API token from console.hetzner.cloud
+hcloud context create devbox     # paste API token from https://console.hetzner.com/projects/<project-id>/security/tokens
 ```
 
 ### Create server
