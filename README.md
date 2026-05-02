@@ -50,23 +50,20 @@ hcloud server delete devbox      # permanent — back up first
 
 Runs on a fresh host as root. Idempotent — safe to re-run.
 
+### Before running — get a Tailscale auth key
+
+Go to [login.tailscale.com/admin/settings/keys](https://login.tailscale.com/admin/settings/keys) → **Generate auth key**
+- **Reusable**: yes — **Ephemeral**: no
+
 ### On the machine
 
 ```bash
 # Install git (bare ubuntu image only)
 apt-get update -y && apt-get install -y git
 
-# Clone this repo
 git clone https://github.com/LuisMedinaG/devbox.git ~/projects/devbox
 cd ~/projects/devbox/bootstrap
 
-# Run full bootstrap
-bash bootstrap.sh
-
-# Or a subset
-bash bootstrap.sh 10-user 40-dev-tools 50-shell 60-langs 70-claude-code
-
-# With Tailscale auth key
 TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
 ```
 
@@ -114,21 +111,6 @@ by `.zshrc`.
 ---
 
 ## Access
-
-### Tailscale setup (one-time)
-
-1. Go to [login.tailscale.com/admin/settings/keys](https://login.tailscale.com/admin/settings/keys) → **Generate auth key**
-   - **Reusable**: yes — **Ephemeral**: no — **Tags**: none required
-   - Copy the `tskey-auth-...` value
-2. Run the tailscale role with the key:
-   ```bash
-   TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh 30-tailscale
-   ```
-3. Verify from your Mac:
-   ```bash
-   tailscale status
-   ssh <devbox-tailscale-name>
-   ```
 
 ### Mac `~/.ssh/config`
 
