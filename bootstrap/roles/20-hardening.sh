@@ -16,6 +16,11 @@ X11Forwarding no
 EOF
 chmod 644 /etc/ssh/sshd_config.d/10-hardening.conf
 
+# Privilege-separation dir is normally created by systemd-tmpfiles, but on
+# some images it goes missing, which makes `sshd -t` abort before it can
+# even validate the config. Create it ourselves to keep re-runs idempotent.
+install -d -m 755 /run/sshd
+
 sshd -t
 reload_sshd
 
