@@ -4,19 +4,22 @@ source "$SCRIPT_DIR/lib/common.sh"
 
 apt_install ufw fail2ban
 
-# Harden SSH.
-SSHD=/etc/ssh/sshd_config
-ensure_kv "PermitRootLogin"        "no"  "$SSHD"
-ensure_kv "PasswordAuthentication" "no"  "$SSHD"
-ensure_kv "PubkeyAuthentication"   "yes" "$SSHD"
-ensure_kv "KbdInteractiveAuthentication" "no" "$SSHD"
-ensure_kv "ChallengeResponseAuthentication" "no" "$SSHD"
-ensure_kv "X11Forwarding"          "no"  "$SSHD"
+# Harden SSH via a drop-in. Ubuntu 24.04's stock sshd_config Includes
+# /etc/ssh/sshd_config.d/*.conf, so we don't have to mutate the upstream file.
+install -d -m 755 /etc/ssh/sshd_config.d
+cat >/etc/ssh/sshd_config.d/10-hardening.conf <<'EOF'
+PermitRootLogin no
+PasswordAuthentication no
+PubkeyAuthentication yes
+KbdInteractiveAuthentication no
+X11Forwarding no
+EOF
+chmod 644 /etc/ssh/sshd_config.d/10-hardening.conf
 
 sshd -t
 reload_sshd
 
-if [[ "${SKIP_UFW:-0}" == "0" ]]; then
+if [[ "${SKIP_FIREWALL:-0}" == "0" ]]; then
   # Only initialize ufw if it isn't already active. Re-running this role must
   # not wipe rules added by later roles (e.g. docker stacks opening ports).
   if ! ufw status 2>/dev/null | grep -q '^Status: active'; then

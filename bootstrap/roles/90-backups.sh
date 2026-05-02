@@ -4,6 +4,9 @@ source "$SCRIPT_DIR/lib/common.sh"
 
 apt_install restic
 
+# The restic unit below backs up ~/projects; create it so the first timer
+# fire doesn't fail with "no such file or directory".
+install -d -o "$USERNAME" -g "$USERNAME" "/home/$USERNAME/projects"
 install -d -o "$USERNAME" -g "$USERNAME" "/home/$USERNAME/.config/restic"
 ENV_FILE="/home/$USERNAME/.config/restic/env"
 if [[ ! -f "$ENV_FILE" ]]; then

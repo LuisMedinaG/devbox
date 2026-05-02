@@ -17,7 +17,7 @@ bootstrap/
 ## Key constraints
 
 - **Hetzner has full systemd** — use `systemctl` directly. `enable_service` is a thin wrapper around `systemctl enable --now`.
-- **Bootstrap defaults**: `USERNAME=luis`, `TIMEZONE=America/Mexico_City`, `SKIP_UFW=0`.
+- **Bootstrap defaults**: `USERNAME=luis`, `TIMEZONE=America/Mexico_City`, `SKIP_FIREWALL=0` (legacy `SKIP_UFW` still works).
 - **Tailscale**: hostname `hetzner-devbox`, IP `100.118.147.126`, tailnet `betousky01@`.
 - **iOS access**: Tailscale + Terminus with Mosh enabled; Mosh installed via role 40.
 - **ufw is active** — SSH (22) and Mosh UDP (60000–61000) are open. Add new service ports via ufw in the relevant role.

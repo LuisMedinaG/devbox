@@ -6,9 +6,9 @@ set -euo pipefail
 
 : "${USERNAME:=luis}"
 : "${TIMEZONE:=America/Mexico_City}"
-: "${TS_AUTHKEY:=}"     # optional, prefills tailscale auth
-: "${SKIP_UFW:=0}"      # set to 1 to skip ufw/fail2ban
-export USERNAME TIMEZONE TS_AUTHKEY SKIP_UFW
+: "${TS_AUTHKEY:=}"          # optional, prefills tailscale auth
+: "${SKIP_FIREWALL:=${SKIP_UFW:-0}}"   # set to 1 to skip ufw + fail2ban (sshd hardening still runs)
+export USERNAME TIMEZONE TS_AUTHKEY SKIP_FIREWALL
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export SCRIPT_DIR

@@ -149,5 +149,7 @@ Mosh handles roaming between WiFi and cellular without dropping the session.
 |----------|---------|-------------|
 | `USERNAME` | `luis` | User to create |
 | `TIMEZONE` | `America/Mexico_City` | Host timezone |
-| `SKIP_UFW` | `0` | Set to `1` to skip ufw/fail2ban |
+| `SKIP_FIREWALL` | `0` | Set to `1` to skip ufw + fail2ban. **sshd hardening still runs** (root login, password auth, etc. are disabled regardless). |
 | `TS_AUTHKEY` | _(empty)_ | Tailscale auth key for unattended connect |
+
+> Legacy: `SKIP_UFW` is still honored as a fallback when `SKIP_FIREWALL` is unset.
