@@ -45,3 +45,14 @@ enable_service() {
 reload_sshd() {
   systemctl reload ssh
 }
+
+# Download a URL to a destination path and verify its sha256 checksum.
+# Aborts if the expected hash is empty or does not match.
+#   download_verify <url> <dest> <expected_sha256>
+download_verify() {
+  local url="$1" dest="$2" expected="$3"
+  [[ -n "$expected" ]] || die "download_verify: no sha256 provided for $url — refusing to download unverified."
+  curl -fsSL "$url" -o "$dest"
+  echo "${expected}  ${dest}" | sha256sum -c - \
+    || die "sha256 mismatch for $dest (url: $url). Aborting."
+}
