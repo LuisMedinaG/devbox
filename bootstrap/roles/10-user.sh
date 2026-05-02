@@ -44,10 +44,11 @@ if [[ "$ADMIN_USERNAME" != "$USERNAME" ]]; then
 
   HOME_DIR_ADMIN="/home/$ADMIN_USERNAME"
   install -d -m 700 -o "$ADMIN_USERNAME" -g "$ADMIN_USERNAME" "$HOME_DIR_ADMIN/.ssh"
-  if [[ -f "$SCRIPT_DIR/config/ssh-authorized-keys" ]]; then
+  ADMIN_KEYS_SRC="$SCRIPT_DIR/config/ssh-authorized-keys"
+  [[ ! -f "$ADMIN_KEYS_SRC" ]] && [[ -f /root/.ssh/authorized_keys ]] && ADMIN_KEYS_SRC=/root/.ssh/authorized_keys
+  if [[ -f "$ADMIN_KEYS_SRC" ]]; then
     install -m 600 -o "$ADMIN_USERNAME" -g "$ADMIN_USERNAME" \
-      "$SCRIPT_DIR/config/ssh-authorized-keys" \
-      "$HOME_DIR_ADMIN/.ssh/authorized_keys"
+      "$ADMIN_KEYS_SRC" "$HOME_DIR_ADMIN/.ssh/authorized_keys"
   fi
 fi
 
@@ -55,11 +56,15 @@ fi
 HOME_DIR="/home/$USERNAME"
 install -d -m 700 -o "$USERNAME" -g "$USERNAME" "$HOME_DIR/.ssh"
 
-# Refuse to proceed without keys: role 20 will disable PasswordAuthentication,
-# so no keys = locked out of the host.
-if [[ ! -f "$SCRIPT_DIR/config/ssh-authorized-keys" ]]; then
-  die "config/ssh-authorized-keys is missing. Copy ssh-authorized-keys.example, add your pubkey(s), and re-run."
+# Prefer an explicit key file; fall back to the key Hetzner injected for root.
+# Role 20 disables PasswordAuthentication, so no keys = locked out.
+KEYS_SRC="$SCRIPT_DIR/config/ssh-authorized-keys"
+if [[ ! -f "$KEYS_SRC" ]]; then
+  if [[ -f /root/.ssh/authorized_keys ]]; then
+    KEYS_SRC=/root/.ssh/authorized_keys
+    warn "config/ssh-authorized-keys not found — using /root/.ssh/authorized_keys (injected by Hetzner)"
+  else
+    die "No SSH keys found. Provide config/ssh-authorized-keys or create the server with --ssh-key."
+  fi
 fi
-install -m 600 -o "$USERNAME" -g "$USERNAME" \
-  "$SCRIPT_DIR/config/ssh-authorized-keys" \
-  "$HOME_DIR/.ssh/authorized_keys"
+install -m 600 -o "$USERNAME" -g "$USERNAME" "$KEYS_SRC" "$HOME_DIR/.ssh/authorized_keys"

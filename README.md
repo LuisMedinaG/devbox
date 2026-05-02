@@ -50,17 +50,6 @@ hcloud server delete devbox      # permanent — back up first
 
 Runs on a fresh host as root. Idempotent — safe to re-run.
 
-### Before first run
-
-Create `bootstrap/config/ssh-authorized-keys` (gitignored — never committed) from the template and paste in your pubkey(s):
-
-```bash
-cp bootstrap/config/ssh-authorized-keys.example bootstrap/config/ssh-authorized-keys
-cat ~/.ssh/id_ed25519.pub >> bootstrap/config/ssh-authorized-keys
-```
-
-`bootstrap.sh` refuses to run without this file — role 20 disables password auth, so no keys = locked out.
-
 ### On the machine
 
 ```bash
