@@ -3,7 +3,7 @@ set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
 apt_update_once
-apt_install ca-certificates curl gnupg lsb-release tzdata
+apt_install ca-certificates curl gnupg lsb-release tzdata sudo
 
 ln -sf "/usr/share/zoneinfo/${TIMEZONE}" /etc/localtime
 echo "$TIMEZONE" > /etc/timezone
@@ -15,7 +15,6 @@ APT::Periodic::AutocleanInterval "7";
 EOF
 
 # 2 GB swap if none exists.
-# Use /home/swapfile so it lives on the persistent volume (root may be overlayfs).
 SWAPFILE="${SWAPFILE:-/swapfile}"
 if ! swapon --show | grep -q .; then
   fallocate -l 2G "$SWAPFILE"
@@ -27,7 +26,7 @@ fi
 
 cat >/etc/sysctl.d/99-bootstrap.conf <<'EOF'
 vm.swappiness=10
-net.ipv4.tcp_bbr=1
 net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
 EOF
 sysctl --system >/dev/null

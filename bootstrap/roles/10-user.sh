@@ -10,8 +10,11 @@ usermod -aG sudo "$USERNAME"
 loginctl enable-linger "$USERNAME"
 
 mkdir -p /etc/sudoers.d
-echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/90-"$USERNAME"
-chmod 440 /etc/sudoers.d/90-"$USERNAME"
+SUDOERS_TMP=$(mktemp)
+trap 'rm -f "$SUDOERS_TMP"' EXIT
+printf '%s ALL=(ALL) NOPASSWD:ALL\n' "$USERNAME" >"$SUDOERS_TMP"
+visudo -cf "$SUDOERS_TMP" >/dev/null
+install -m 440 -o root -g root "$SUDOERS_TMP" /etc/sudoers.d/90-"$USERNAME"
 
 HOME_DIR="/home/$USERNAME"
 install -d -m 700 -o "$USERNAME" -g "$USERNAME" "$HOME_DIR/.ssh"

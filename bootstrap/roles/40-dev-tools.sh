@@ -4,7 +4,6 @@ source "$SCRIPT_DIR/lib/common.sh"
 
 apt_update_once
 apt_install \
-  sudo \
   build-essential pkg-config \
   git git-lfs curl wget jq \
   tmux zsh \
