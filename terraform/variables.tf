@@ -36,4 +36,11 @@ variable "ssh_key_names" {
     Upload a new one with: `hcloud ssh-key create --name <name> --public-key "$(cat ~/.ssh/id_ed25519.pub)"`.
   EOT
   type        = list(string)
+
+  validation {
+    condition = length(var.ssh_key_names) > 0 && alltrue([
+      for name in var.ssh_key_names : trimspace(name) != ""
+    ])
+    error_message = "ssh_key_names must contain at least one non-empty key name; otherwise Hetzner emails a root password instead of authorizing key-based SSH."
+  }
 }
