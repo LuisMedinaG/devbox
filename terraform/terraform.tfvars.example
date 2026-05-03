@@ -1,9 +1,8 @@
-hcloud_token = "paste-your-hetzner-api-token-here"
+hcloud_token  = "paste-your-hetzner-api-token-here"
+ssh_key_names = ["mac-pub-id_ed"]   # must already exist; see `hcloud ssh-key list`
 
 # Optional overrides — defaults match the CLI workflow in README.md
-# server_name         = "devbox"
-# server_type         = "cx23"
-# location            = "nbg1"
-# image               = "ubuntu-24.04"
-# ssh_key_name        = "macbook"
-# ssh_public_key_path = "~/.ssh/id_ed25519.pub"
+# server_name = "devbox"
+# server_type = "cx23"
+# location    = "nbg1"
+# image       = "ubuntu-24.04"

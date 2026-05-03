@@ -19,12 +19,15 @@ Get an API token first: https://console.hetzner.com/projects/<project-id>/securi
 
 ### Option A: Terraform
 
+Prerequisite: at least one SSH public key already uploaded to your Hetzner project. Check with `hcloud ssh-key list`; upload one with `hcloud ssh-key create --name <name> --public-key "$(cat ~/.ssh/id_ed25519.pub)"`. The Terraform module references existing keys by name rather than uploading them, so it composes cleanly with whatever you already have in the project.
+
 ```bash
 brew install terraform
 
 cd terraform
 cp terraform.tfvars.example terraform.tfvars
-# edit terraform.tfvars and paste your Hetzner API token
+# edit terraform.tfvars: paste your Hetzner API token and list the SSH key
+# names (from `hcloud ssh-key list`) you want authorized on the box.
 
 terraform init
 terraform apply
@@ -32,8 +35,6 @@ terraform output ipv4    # public IP of the devbox
 ```
 
 To tear it down: `terraform destroy`. State lives in `terraform/terraform.tfstate` (gitignored) — back it up if you care about reproducibility across machines, or migrate to a remote backend.
-
-> If you already uploaded the SSH key under the same name (e.g. via the CLI path below), either delete it in the Hetzner console first or `terraform import hcloud_ssh_key.default <id>`.
 
 ### Option B: hcloud CLI
 

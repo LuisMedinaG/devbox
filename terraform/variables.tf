@@ -28,14 +28,12 @@ variable "image" {
   default     = "ubuntu-24.04"
 }
 
-variable "ssh_key_name" {
-  description = "Name to register the SSH public key under in Hetzner."
-  type        = string
-  default     = "macbook"
-}
-
-variable "ssh_public_key_path" {
-  description = "Path to the SSH public key to upload and authorize for root."
-  type        = string
-  default     = "~/.ssh/id_ed25519.pub"
+variable "ssh_key_names" {
+  description = <<-EOT
+    Names of SSH public keys already uploaded to your Hetzner project.
+    All listed keys are authorized for root on the new server.
+    List existing keys with: `hcloud ssh-key list`.
+    Upload a new one with: `hcloud ssh-key create --name <name> --public-key "$(cat ~/.ssh/id_ed25519.pub)"`.
+  EOT
+  type        = list(string)
 }
