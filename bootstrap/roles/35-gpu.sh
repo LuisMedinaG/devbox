@@ -14,6 +14,7 @@ log "NVIDIA GPU detected. Installing drivers and container toolkit."
 
 # Source pinned versions; fall back to defaults defined here.
 VERSIONS_ENV="$SCRIPT_DIR/config/versions.conf"
+# shellcheck source=/dev/null
 [[ -f "$VERSIONS_ENV" ]] && source "$VERSIONS_ENV"
 
 : "${NVIDIA_DRIVER_BRANCH:=nvidia-driver-550-server}"
