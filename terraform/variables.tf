@@ -51,8 +51,8 @@ variable "ssh_key_names" {
 
   validation {
     condition = length(var.ssh_key_names) > 0 && alltrue([
-      for name in var.ssh_key_names : trimspace(name) != ""
+      for name in var.ssh_key_names : trimspace(name) == name && trimspace(name) != ""
     ])
-    error_message = "ssh_key_names must contain at least one non-empty key name; otherwise Hetzner emails a root password instead of authorizing key-based SSH."
+    error_message = "ssh_key_names must contain at least one entry, and every entry must be non-empty with no surrounding whitespace (the Hetzner API matches names exactly)."
   }
 }
