@@ -10,16 +10,37 @@ Personal cloud dev box running Claude Code on Hetzner. Persistent tmux sessions,
 
 ## Hetzner setup
 
-### Prerequisites
+Two ways to provision the host — pick one. Both end up with the same machine.
+
+- **Terraform** (`terraform/`) — declarative, easy to recreate or spin up variants.
+- **`hcloud` CLI** — one-shot commands, no state file.
+
+Get an API token first: https://console.hetzner.com/projects/<project-id>/security/tokens
+
+### Option A: Terraform
+
+```bash
+brew install terraform
+
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+# edit terraform.tfvars and paste your Hetzner API token
+
+terraform init
+terraform apply
+terraform output ipv4    # public IP of the devbox
+```
+
+To tear it down: `terraform destroy`. State lives in `terraform/terraform.tfstate` (gitignored) — back it up if you care about reproducibility across machines, or migrate to a remote backend.
+
+> If you already uploaded the SSH key under the same name (e.g. via the CLI path below), either delete it in the Hetzner console first or `terraform import hcloud_ssh_key.default <id>`.
+
+### Option B: hcloud CLI
 
 ```bash
 brew install hcloud
-hcloud context create devbox     # paste API token from https://console.hetzner.com/projects/<project-id>/security/tokens
-```
+hcloud context create devbox     # paste the API token
 
-### Create server
-
-```bash
 # Upload your SSH key if not already in Hetzner
 hcloud ssh-key create --name macbook --public-key "$(cat ~/.ssh/id_ed25519.pub)"
 
@@ -36,6 +57,8 @@ hcloud server list    # get the IP
 
 ### Server lifecycle
 
+Day-to-day power operations work the same regardless of how you provisioned. Use `hcloud` for these — Terraform doesn't model power state:
+
 ```bash
 hcloud server list
 hcloud server reboot devbox
@@ -43,6 +66,8 @@ hcloud server poweroff devbox
 hcloud server poweron devbox
 hcloud server delete devbox      # permanent — back up first
 ```
+
+> If you provisioned with Terraform, prefer `terraform destroy` over `hcloud server delete` so state stays in sync.
 
 ---
 
