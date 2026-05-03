@@ -1,8 +1,11 @@
-hcloud_token  = "paste-your-hetzner-api-token-here"
 ssh_key_names = ["mac-pub-id_ed"]   # must already exist; see `hcloud ssh-key list`
+
+# Auth: prefer `export HCLOUD_TOKEN=...` over the line below to keep the
+# token off disk. Uncomment only if you really want it in tfvars.
+# hcloud_token = "paste-your-hetzner-api-token-here"
 
 # Optional overrides — defaults match the CLI workflow in README.md
 # server_name = "devbox"
-# server_type = "cx23"
-# location    = "nbg1"
+# server_type = "cx23"        # EU-only on some accounts; try cpx21 in ash/hil
+# location    = "nbg1"        # ash = closest US region to LATAM
 # image       = "ubuntu-24.04"

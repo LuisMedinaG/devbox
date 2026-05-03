@@ -24,10 +24,14 @@ Prerequisite: at least one SSH public key already uploaded to your Hetzner proje
 ```bash
 brew install terraform
 
+# Authenticate — same token you used for `hcloud`. Two options:
+export HCLOUD_TOKEN=your-token-here     # preferred: token stays out of files
+# or paste it into terraform.tfvars (gitignored) below.
+
 cd terraform
 cp terraform.tfvars.example terraform.tfvars
-# edit terraform.tfvars: paste your Hetzner API token and list the SSH key
-# names (from `hcloud ssh-key list`) you want authorized on the box.
+# edit terraform.tfvars: list the SSH key names (from `hcloud ssh-key list`)
+# you want authorized on the box, plus any region/type overrides.
 
 terraform init
 terraform apply
@@ -35,6 +39,8 @@ terraform output ipv4    # public IP of the devbox
 ```
 
 To tear it down: `terraform destroy`. State lives in `terraform/terraform.tfstate` (gitignored) — back it up if you care about reproducibility across machines, or migrate to a remote backend.
+
+> **Region note:** `cx`-line server types (Intel) are EU-only on some accounts. For `ash`/`hil`/`sin`, try `cpx21` (AMD) or `cax21` (ARM) instead. Verify with `hcloud server-type describe <type>`.
 
 ### Option B: hcloud CLI
 

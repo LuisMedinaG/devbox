@@ -1,7 +1,12 @@
 variable "hcloud_token" {
-  description = "Hetzner Cloud API token. Create one at https://console.hetzner.com/projects/<project-id>/security/tokens"
+  description = <<-EOT
+    Hetzner Cloud API token. Create one at https://console.hetzner.com/projects/<project-id>/security/tokens.
+    Leave unset to fall back to the HCLOUD_TOKEN environment variable (preferred — avoids
+    storing the token on disk).
+  EOT
   type        = string
   sensitive   = true
+  default     = null
 }
 
 variable "server_name" {
@@ -17,7 +22,14 @@ variable "server_type" {
 }
 
 variable "location" {
-  description = "Hetzner datacenter location (e.g. nbg1, fsn1, hel1, ash, hil)."
+  description = <<-EOT
+    Hetzner datacenter location.
+      EU:       nbg1 (Nuremberg), fsn1 (Falkenstein), hel1 (Helsinki)
+      US:       ash (Ashburn, VA), hil (Hillsboro, OR)
+      APAC:     sin (Singapore)
+    Note: the `cx` (Intel) server-type line is EU-only on some accounts; US/APAC may require `cpx` (AMD) or `cax` (ARM).
+    Verify with: `hcloud server-type describe <type> -o json | jq '.prices[].location' | sort -u`
+  EOT
   type        = string
   default     = "nbg1"
 }
