@@ -76,6 +76,15 @@ hcloud server delete devbox      # permanent — back up first
 
 > If you provisioned with Terraform, prefer `terraform destroy` over `hcloud server delete` so state stays in sync.
 
+### Recreating the box
+
+When you nuke and re-provision, two things in Tailscale don't auto-clean:
+
+1. The old `devbox` node entry in your tailnet admin console — it'll auto-expire eventually, but remove it manually at https://login.tailscale.com/admin/machines if you want the hostname free immediately.
+2. The previous auth key (if reusable) is still valid — generate a fresh one for the new box at https://login.tailscale.com/admin/settings/keys.
+
+Then re-run the bootstrap on the new host as documented below; nothing in the Terraform module needs to change for Tailscale.
+
 ---
 
 ## Bootstrap
