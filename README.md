@@ -325,4 +325,5 @@ tests/run-local.sh
 ```
 
 CI runs `shellcheck` + `terraform validate` on every PR. The full E2E suite
-runs on a self-hosted runner when a commit message or PR body contains `[e2e]`.
+is wired up but **manual-only** for now — fire it from the Actions UI or
+`gh workflow run ci.yml` once a self-hosted runner is available.
