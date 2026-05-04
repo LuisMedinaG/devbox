@@ -37,11 +37,11 @@ ROLES=(
   30-tailscale
   35-gpu          # NVIDIA driver + CDI (no-op on CPU hosts)
   40-dev-tools
+  42-docker       # rootless Podman config + optional hardened Docker
   45-agent-sandbox  # rootless Podman + agent system user (no sudo)
   50-shell
   60-langs
   70-claude-code  # builds agent container image; no host claude binary
-  80-docker       # rootless Podman config + optional hardened Docker
   90-backups
 )
 
