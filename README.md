@@ -172,7 +172,7 @@ Sandbox guarantees (enforced by the wrapper, not caller-controlled):
 - `--cap-drop=ALL`, `--security-opt=no-new-privileges`, `--read-only` rootfs
 - `--userns=keep-id` — container UID matches the host `agent` user
 - Isolated `agent-net` Podman network; no access to host loopback or other containers
-- tmpfs for `/tmp`, `/run`, `~/.claude`, `~/.cache`, `~/.npm-global`
+- tmpfs for `/tmp`, `/run`, `~/.claude`, `~/.cache`, `~/.npm`
 - Workspace mounted at `/work` (the only host path the container sees)
 
 The wrapper rejects all extra podman flags (`--privileged`, `-v /:/host`, `--network=host`,
@@ -303,11 +303,24 @@ Bats-based E2E suite asserts post-bootstrap state: SSH posture, UFW rules,
 fail2ban jail, user/sudoers separation, agent sandbox isolation, agent-run
 escape rejection, container UID alignment, restic skeleton, log hygiene.
 
+Install bats-core first — bootstrap does not install it (it's a test
+dependency, not a runtime one):
+
+```bash
+# Ubuntu/Debian (the bootstrapped host)
+sudo apt-get install -y bats
+
+# macOS (only needed for run-local.sh on your Mac)
+brew install bats-core
+```
+
+Then run the suite:
+
 ```bash
 # On any bootstrapped host
 sudo bats tests/e2e.bats
 
-# Or spin up a throwaway Ubuntu 24.04 VM (requires multipass + bats-core locally)
+# Or spin up a throwaway Ubuntu 24.04 VM (requires multipass on your Mac)
 tests/run-local.sh
 ```
 

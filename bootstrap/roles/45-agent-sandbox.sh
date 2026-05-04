@@ -12,6 +12,13 @@ AGENT_HOME="/home/$AGENT_USER"
 WORKSPACES_DIR="/srv/workspaces"
 WRAPPER="/usr/local/bin/agent-run"
 
+# Resolve the interactive host user's home directory at install time so the
+# smoke test can probe the real path on hosts bootstrapped with non-default
+# USERNAME. Falls back to /home/<USERNAME> if getent doesn't return one yet.
+HOST_USERNAME="${USERNAME:-luis}"
+HOST_USER_HOME="$(getent passwd "$HOST_USERNAME" 2>/dev/null | cut -d: -f6)"
+HOST_USER_HOME="${HOST_USER_HOME:-/home/$HOST_USERNAME}"
+
 # --- Dedicated agent system user (no sudo, no docker group) ---
 if ! id -u "$AGENT_USER" >/dev/null 2>&1; then
   adduser --system --group --disabled-password --gecos "AI agent runner" \
@@ -158,6 +165,7 @@ cat >"$SMOKE_SCRIPT" <<HEADER_EOF
 # Exit 0 = sandbox enforced. Exit 1 = a check passed that should have failed.
 set -euo pipefail
 AGENT_USER="${AGENT_USER}"
+HOST_USER_HOME="${HOST_USER_HOME}"
 HEADER_EOF
 
 cat >>"$SMOKE_SCRIPT" <<'SMOKE_EOF'
@@ -212,7 +220,7 @@ check_wrapper_rejects() {
 
 # --- Container isolation ---
 check_blocked "read /etc/shadow"     "cat /etc/shadow"
-check_blocked "read host ~/.ssh"     "ls /home/luis/.ssh"
+check_blocked "read host ~/.ssh"     "ls $HOST_USER_HOME/.ssh"
 check_blocked "sudo -n true"         "sudo -n true"
 check_blocked "reach docker socket"  "curl --unix-socket /var/run/docker.sock http://localhost/version"
 check_blocked "read tailscale state" "cat /var/lib/tailscale/tailscaled.state"
