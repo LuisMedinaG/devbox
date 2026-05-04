@@ -24,6 +24,12 @@ if [[ $EUID -ne 0 ]]; then
   die "Must run as root for initial bootstrap."
 fi
 
+LOG_DIR="/var/log/bootstrap"
+LOG_FILE="$LOG_DIR/bootstrap-$(date +%Y%m%d-%H%M%S).log"
+mkdir -p "$LOG_DIR"
+exec > >(tee -a "$LOG_FILE") 2>&1
+log "Logging to $LOG_FILE"
+
 ROLES=(
   00-system
   10-user
