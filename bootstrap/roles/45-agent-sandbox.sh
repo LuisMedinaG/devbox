@@ -226,10 +226,14 @@ check_blocked "reach docker socket"  "curl --unix-socket /var/run/docker.sock ht
 check_blocked "read tailscale state" "cat /var/lib/tailscale/tailscaled.state"
 
 # --- agent-run escape prevention ---
-check_wrapper_rejects "rejects -- passthrough"    "_smoke$$" "--"
-check_wrapper_rejects "rejects --privileged"      "_smoke$$" "--privileged"
-check_wrapper_rejects "rejects -v /:/host"        "_smoke$$" "-v" "/:/host"
-check_wrapper_rejects "rejects --network=host"    "_smoke$$" "--network=host"
+# Static workspace name keeps the test focused on flag rejection. (`_smoke$$`
+# would also work — `$$` expands to the smoke-test PID at runtime, yielding
+# a regex-valid name — but the static form removes a class of reader
+# confusion about whether the literal heredoc preserves `$$`.)
+check_wrapper_rejects "rejects -- passthrough"    "_smoketest" "--"
+check_wrapper_rejects "rejects --privileged"      "_smoketest" "--privileged"
+check_wrapper_rejects "rejects -v /:/host"        "_smoketest" "-v" "/:/host"
+check_wrapper_rejects "rejects --network=host"    "_smoketest" "--network=host"
 check_wrapper_rejects "rejects path-traversal ws" "../escape"
 
 echo "---"
