@@ -10,16 +10,44 @@ Personal cloud dev box running Claude Code on Hetzner. Persistent tmux sessions,
 
 ## Hetzner setup
 
-### Prerequisites
+Two ways to provision the host — pick one. Both end up with the same machine.
+
+- **Terraform** (`terraform/`) — declarative, easy to recreate or spin up variants.
+- **`hcloud` CLI** — one-shot commands, no state file.
+
+Get an API token first: https://console.hetzner.com/projects/<project-id>/security/tokens
+
+### Option A: Terraform
+
+Prerequisite: at least one SSH public key already uploaded to your Hetzner project. Check with `hcloud ssh-key list`; upload one with `hcloud ssh-key create --name <name> --public-key "$(cat ~/.ssh/id_ed25519.pub)"`. The Terraform module references existing keys by name rather than uploading them, so it composes cleanly with whatever you already have in the project.
+
+```bash
+brew install terraform
+
+# Authenticate — same token you used for `hcloud`. Two options:
+export HCLOUD_TOKEN=your-token-here     # preferred: token stays out of files
+# or paste it into terraform.tfvars (gitignored) below.
+
+cd terraform
+cp terraform.tfvars.example terraform.tfvars
+# edit terraform.tfvars: list the SSH key names (from `hcloud ssh-key list`)
+# you want authorized on the box, plus any region/type overrides.
+
+terraform init
+terraform apply
+terraform output ipv4    # public IP of the devbox
+```
+
+To tear it down: `terraform destroy`. State lives in `terraform/terraform.tfstate` (gitignored) — back it up if you care about reproducibility across machines, or migrate to a remote backend.
+
+> **Region note:** `cx`-line server types (Intel) are EU-only on some accounts. For `ash`/`hil`/`sin`, try `cpx21` (AMD) or `cax21` (ARM) instead. Verify with `hcloud server-type describe <type>`.
+
+### Option B: hcloud CLI
 
 ```bash
 brew install hcloud
-hcloud context create devbox     # paste API token from https://console.hetzner.com/projects/<project-id>/security/tokens
-```
+hcloud context create devbox     # paste the API token
 
-### Create server
-
-```bash
 # Upload your SSH key if not already in Hetzner
 hcloud ssh-key create --name macbook --public-key "$(cat ~/.ssh/id_ed25519.pub)"
 
@@ -36,6 +64,8 @@ hcloud server list    # get the IP
 
 ### Server lifecycle
 
+Day-to-day power operations work the same regardless of how you provisioned. Use `hcloud` for these — Terraform doesn't model power state:
+
 ```bash
 hcloud server list
 hcloud server reboot devbox
@@ -43,6 +73,17 @@ hcloud server poweroff devbox
 hcloud server poweron devbox
 hcloud server delete devbox      # permanent — back up first
 ```
+
+> If you provisioned with Terraform, prefer `terraform destroy` over `hcloud server delete` so state stays in sync.
+
+### Recreating the box
+
+When you nuke and re-provision, two things in Tailscale don't auto-clean:
+
+1. The old `devbox` node entry in your tailnet admin console — it'll auto-expire eventually, but remove it manually at https://login.tailscale.com/admin/machines if you want the hostname free immediately.
+2. The previous auth key (if reusable) is still valid — generate a fresh one for the new box at https://login.tailscale.com/admin/settings/keys.
+
+Then re-run the bootstrap on the new host as documented below; nothing in the Terraform module needs to change for Tailscale.
 
 ---
 

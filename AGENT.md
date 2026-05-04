@@ -5,6 +5,11 @@ Personal cloud dev box on Hetzner (Ubuntu 24.04). Bootstrap scripts provision a 
 ## Repo layout
 
 ```
+terraform/        Optional declarative provisioning of the Hetzner server.
+                  Alternative to `hcloud server create` (both documented in
+                  README.md). References pre-existing Hetzner SSH keys via
+                  data source rather than uploading them.
+
 bootstrap/
   bootstrap.sh    Entry point; runs roles in order or a named subset
   lib/common.sh   Helpers: log/warn/die, once, ensure_line, ensure_kv,
@@ -21,10 +26,12 @@ This repo is a **system provisioner** — it runs as root and owns everything at
 
 | Layer | Repo | What it owns |
 |---|---|---|
-| System | **devbox** (this repo) | apt packages, users, SSH/firewall/network, runtimes, services |
+| Infrastructure | **devbox** (this repo, `terraform/`) | Hetzner server, SSH keys (referenced, not uploaded) |
+| System | **devbox** (this repo, `bootstrap/`) | apt packages, users, SSH/firewall/network, runtimes, services |
 | User config | **dotfiles** (`LuisMedinaG/.dotfiles`, via yadm) | `.zshrc`, `.zshenv`, `.config/tmux/`, `.gitconfig`, nvim, plugins |
 
 **Handoff sequence:**
+0. (Optional) `terraform apply` from `terraform/` — provisions the Hetzner server. Same end state as `hcloud server create`; pick whichever is documented in README.md.
 1. `bash bootstrap.sh` (root) — provisions machine, installs yadm
 2. Role 50 writes `~/.zshrc.local` with machine-specific PATH entries (fnm, cargo, go) — not tracked by yadm
 3. `su - luis` → `yadm clone git@github.com:LuisMedinaG/.dotfiles.git` → `yadm bootstrap`
@@ -60,6 +67,7 @@ This repo is a **system provisioner** — it runs as root and owns everything at
 ## Editing guidelines
 
 - Bootstrap is the source of truth for host state. Don't configure things outside of it.
+- Terraform is the source of truth for the Hetzner server resource itself. Don't add OS-level config there — it belongs in bootstrap.
 - New services: add an `enable_service <name>` call in the relevant role.
 - New firewall ports: add `ufw allow <port>` in 20-hardening or the relevant role.
 - Re-run bootstrap at any time — all roles are idempotent via the `once` helper.

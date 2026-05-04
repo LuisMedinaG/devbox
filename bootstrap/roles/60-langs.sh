@@ -7,6 +7,7 @@ source "$SCRIPT_DIR/lib/common.sh"
 
 VERSIONS_CONF="$SCRIPT_DIR/config/versions.conf"
 [[ -f "$VERSIONS_CONF" ]] || die "config/versions.conf not found."
+# shellcheck source=/dev/null
 source "$VERSIONS_CONF"
 
 # Require explicit sha256 for every tool; die early with a clear message.

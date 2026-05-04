@@ -1,0 +1,9 @@
+# Terraform state and local caches
+.terraform/
+.terraform.tfstate.lock.info
+*.tfstate
+*.tfstate.*
+
+# Real tfvars contain the API token — only the example is tracked
+*.tfvars
+!*.tfvars.example
