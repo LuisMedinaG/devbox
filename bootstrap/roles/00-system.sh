@@ -14,6 +14,27 @@ APT::Periodic::Unattended-Upgrade "1";
 APT::Periodic::AutocleanInterval "7";
 EOF
 
+# Apply security patches automatically and reboot at 02:00 if required.
+# Without Automatic-Reboot, kernel CVE patches install but never activate.
+cat >/etc/apt/apt.conf.d/51unattended-upgrades-reboot <<'EOF'
+Unattended-Upgrade::Automatic-Reboot "true";
+Unattended-Upgrade::Automatic-Reboot-Time "02:00";
+Unattended-Upgrade::Automatic-Reboot-WithUsers "false";
+EOF
+
+# Rotate bootstrap logs weekly; keep 8 weeks. Without this, long-lived
+# hosts accumulate unbounded logs under /var/log/bootstrap/.
+cat >/etc/logrotate.d/bootstrap <<'EOF'
+/var/log/bootstrap/*.log {
+    weekly
+    rotate 8
+    compress
+    missingok
+    notifempty
+    create 0640 root root
+}
+EOF
+
 # 2 GB swap if none exists.
 SWAPFILE="${SWAPFILE:-/swapfile}"
 if ! swapon --show | grep -q .; then

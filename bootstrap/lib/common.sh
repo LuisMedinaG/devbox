@@ -13,10 +13,13 @@ ensure_line() {
 }
 
 # Replace or append a `key value` style directive in a config file.
+# Uses \x01 as the sed delimiter so values containing |, /, # etc. are safe.
 ensure_kv() {
   local key="$1" value="$2" file="$3" sep="${4:- }"
+  local escaped_value
+  escaped_value=$(printf '%s' "$value" | sed 's/[\&]/\\&/g')
   if grep -Eq "^[#[:space:]]*${key}\b" "$file" 2>/dev/null; then
-    sed -i -E "s|^[#[:space:]]*(${key})\b.*|\1${sep}${value}|" "$file"
+    sed -i -E "s$(printf '\x01')^[#[:space:]]*(${key})\b.*$(printf '\x01')\1${sep}${escaped_value}$(printf '\x01')" "$file"
   else
     echo "${key}${sep}${value}" >> "$file"
   fi
@@ -48,10 +51,15 @@ reload_sshd() {
 
 # Download a URL to a destination path and verify its sha256 checksum.
 # Aborts if the expected hash is empty or does not match.
+# Skips the download if the file already exists and the hash already matches
+# (makes re-runs faster without sacrificing integrity).
 #   download_verify <url> <dest> <expected_sha256>
 download_verify() {
   local url="$1" dest="$2" expected="$3"
   [[ -n "$expected" ]] || die "download_verify: no sha256 provided for $url — refusing to download unverified."
+  if [[ -f "$dest" ]] && echo "${expected}  ${dest}" | sha256sum -c - >/dev/null 2>&1; then
+    return 0
+  fi
   curl -fsSL "$url" -o "$dest"
   echo "${expected}  ${dest}" | sha256sum -c - \
     || die "sha256 mismatch for $dest (url: $url). Aborting."
