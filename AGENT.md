@@ -93,7 +93,7 @@ sudo agent-run <workspace> -e KEY=VALUE   # only -e flags are accepted
 Hardening flags applied unconditionally by the wrapper: `--cap-drop=ALL`,
 `--security-opt=no-new-privileges`, `--read-only`, `--userns=keep-id`,
 `--network=agent-net` (isolated bridge), tmpfs for `/tmp`, `/run`,
-`~/.claude`, `~/.cache`, `~/.npm-global`. Workspace mounted at `/work`.
+`~/.claude`, `~/.cache`, `~/.npm`. Workspace mounted at `/work`.
 
 The wrapper rejects `--`, `--privileged`, `-v`, `--network`, and any
 non-`-e` flags — enforced by `agent-sandbox-smoke-test.sh`.

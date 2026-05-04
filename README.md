@@ -228,7 +228,8 @@ Connect VS Code on your Mac to the devbox and open repos in isolated Docker cont
 
 ### Host prerequisites (handled by bootstrap)
 
-- Role 80 installs Docker CE and adds `luis` to the `docker` group.
+- Rootless Podman (configured by role 42) is the default container runtime.
+- Docker CE is installed only when bootstrap runs with `INSTALL_DOCKER=1`. The default is `0`; the interactive user is **not** added to the `docker` group regardless.
 - VS Code CLI is installed to `~/.local/bin/code`:
 
 ```bash

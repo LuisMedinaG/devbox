@@ -60,12 +60,21 @@ fi
 # Invoke via `sudo agent-run` — sudoers grants the interactive user NOPASSWD
 # for this binary (see role 10-user). Inside, we drop to $AGENT_USER via
 # runuser rather than a nested sudo, keeping one privilege boundary.
-cat >"$WRAPPER" <<'WRAPPER_EOF'
+#
+# The wrapper is built in two stages:
+#   1) An interpolated header that bakes the role's AGENT_USER and
+#      WORKSPACES_DIR values into the script (so non-default AGENT_USER
+#      values are honored).
+#   2) A literal heredoc body that preserves all $-references for runtime.
+cat >"$WRAPPER" <<HEADER_EOF
 #!/usr/bin/env bash
 set -euo pipefail
 
-AGENT_USER="agent"
-WORKSPACES_DIR="/srv/workspaces"
+AGENT_USER="${AGENT_USER}"
+WORKSPACES_DIR="${WORKSPACES_DIR}"
+HEADER_EOF
+
+cat >>"$WRAPPER" <<'WRAPPER_EOF'
 IMAGE_FILE="/etc/devbox/agent-image"
 IMAGE="${AGENT_IMAGE:-$(cat "$IMAGE_FILE" 2>/dev/null || echo "devbox-claude-code:latest")}"
 
@@ -138,21 +147,31 @@ chmod 755 "$WRAPPER"
 # --- Negative-access smoke test (CI-friendly) ---
 # Isolation checks use the same flags as agent-run.
 # Escape-via-wrapper checks verify agent-run itself rejects dangerous arguments.
+# As with the wrapper above, AGENT_USER is interpolated at install time so
+# non-default AGENT_USER values are honored.
 SMOKE_SCRIPT="/usr/local/libexec/agent-sandbox-smoke-test.sh"
 install -d /usr/local/libexec
-cat >"$SMOKE_SCRIPT" <<'SMOKE_EOF'
+cat >"$SMOKE_SCRIPT" <<HEADER_EOF
 #!/usr/bin/env bash
 # Asserts that an agent container cannot reach sensitive host resources,
 # and that agent-run rejects all flag-based escape attempts.
 # Exit 0 = sandbox enforced. Exit 1 = a check passed that should have failed.
 set -euo pipefail
+AGENT_USER="${AGENT_USER}"
+HEADER_EOF
+
+cat >>"$SMOKE_SCRIPT" <<'SMOKE_EOF'
 PASS=0; FAIL=0
 
-AGENT_USER="agent"
 IMAGE_FILE="/etc/devbox/agent-image"
 IMAGE="${AGENT_IMAGE:-$(cat "$IMAGE_FILE" 2>/dev/null || echo "devbox-claude-code:latest")}"
 
-# Runs a shell command inside a container using the exact same flags as agent-run.
+# Runs a shell command inside a container using the EXACT same flags as
+# agent-run. Keep this list in lockstep with the heredoc above; if a flag
+# changes in agent-run, change it here too. The home-dir tmpfs mounts are
+# included even though alpine doesn't have /home/claudeuser — podman creates
+# the mountpoint, and the test's purpose is to mirror the runtime shape so
+# any drift surfaces here.
 _sandbox_run() {
   sudo -u "$AGENT_USER" podman run --rm \
     --userns=keep-id \
@@ -161,6 +180,9 @@ _sandbox_run() {
     --read-only \
     --tmpfs /tmp:rw,size=512m,mode=1777 \
     --tmpfs /run:rw,size=64m \
+    --tmpfs /home/claudeuser/.claude:rw,size=256m \
+    --tmpfs /home/claudeuser/.cache:rw,size=256m \
+    --tmpfs /home/claudeuser/.npm:rw,size=128m \
     --network=agent-net \
     alpine:latest sh -c "$1"
 }

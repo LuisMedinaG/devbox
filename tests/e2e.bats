@@ -112,9 +112,12 @@ setup() {
 }
 
 @test "agent user $AGENT_USER has no sudo privileges" {
-  # sudo -l exits 1 when the user has no entries.
+  # sudo -l exits non-zero when the user has no entries. Asserting on $status
+  # alone catches the password-required-sudo case that a NOPASSWD-only grep
+  # would silently miss.
   run sudo -l -U "$AGENT_USER"
-  ! echo "$output" | grep -q "NOPASSWD"
+  [ "$status" -ne 0 ]
+  ! echo "$output" | grep -q -- "NOPASSWD"
 }
 
 @test "agent user $AGENT_USER is not in docker group" {
@@ -216,8 +219,8 @@ setup() {
   AGENT_IMAGE="does-not-exist:latest" \
     run /usr/local/bin/agent-run "smoke$$" -e "FOO=bar" -e "BAZ=qux"
   [ "$status" -ne 0 ]    # podman pull fails — that's fine
-  ! echo "$output" | grep -qi "unknown argument"
-  ! echo "$output" | grep -qi "-e requires KEY=VALUE"
+  ! echo "$output" | grep -qi -- "unknown argument"
+  ! echo "$output" | grep -qi -- "-e requires KEY=VALUE"
 }
 
 # ---------------------------------------------------------------------------
