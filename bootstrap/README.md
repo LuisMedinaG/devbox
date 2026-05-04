@@ -74,6 +74,20 @@ tmux new -s work
 `~/.zshrc.local` (written by role 50, not tracked by yadm) holds machine-specific PATH
 entries for fnm, cargo, and Go. It survives `yadm clone` automatically.
 
+## Logs
+
+Every run writes a timestamped log to `/var/log/bootstrap/`:
+
+```bash
+/var/log/bootstrap/bootstrap-YYYYMMDD-HHMMSS.log
+```
+
+All stdout and stderr from every role is captured. To follow a run live:
+
+```bash
+tail -f /var/log/bootstrap/bootstrap-$(date +%Y%m%d)*.log
+```
+
 ## Helpers (`lib/common.sh`)
 
 - `ensure_line` — append-if-missing to a file

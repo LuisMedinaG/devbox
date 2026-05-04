@@ -109,6 +109,10 @@ TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
 #   sudo tailscale up --ssh
 ```
 
+### Logs
+
+Every run saves a timestamped log to `/var/log/bootstrap/bootstrap-YYYYMMDD-HHMMSS.log` — all role output (stdout + stderr). Check there first when troubleshooting.
+
 ### Roles
 
 | # | Role | What it does |

@@ -39,6 +39,10 @@ This repo is a **system provisioner** — it runs as root and owns everything at
 
 **Rule:** Bootstrap must never write config into files that dotfiles owns (`.zshrc`, `.zshenv`, `.gitconfig`, etc.). Machine-specific shell entries belong in `~/.zshrc.local` or `~/.zshenv.local`.
 
+## Logs
+
+Bootstrap writes a timestamped log of all role output (stdout + stderr) to `/var/log/bootstrap/bootstrap-YYYYMMDD-HHMMSS.log`. Check there first when troubleshooting a failed run.
+
 ## Key constraints
 
 - **Hetzner has full systemd** — use `systemctl` directly. `enable_service` is a thin wrapper around `systemctl enable --now`.
