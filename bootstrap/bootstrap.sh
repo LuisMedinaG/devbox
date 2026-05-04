@@ -8,11 +8,14 @@ set -euo pipefail
 : "${ADMIN_USERNAME:=$USERNAME}"  # separate admin account; defaults to USERNAME for dev boxes
 : "${AGENT_USER:=agent}"          # dedicated sandbox user, no sudo
 : "${TIMEZONE:=America/Mexico_City}"
-: "${TS_AUTHKEY:=}"               # optional, prefills tailscale auth
-: "${SKIP_FIREWALL:=${SKIP_UFW:-0}}"  # set to 1 to skip ufw + fail2ban (sshd hardening still runs)
+: "${TS_AUTHKEY:=}"               # optional, prefills tailscale auth — NOT exported globally
+: "${SKIP_FIREWALL:=${SKIP_UFW:-0}}"  # set to 1 to skip ufw only; fail2ban + sshd hardening still run
 : "${INSTALL_DOCKER:=0}"          # set to 1 to install rootful Docker alongside Podman
 : "${GPU_PROFILE:=consumer}"      # none | consumer | datacenter
-export USERNAME ADMIN_USERNAME AGENT_USER TIMEZONE TS_AUTHKEY SKIP_FIREWALL INSTALL_DOCKER GPU_PROFILE
+# TS_AUTHKEY is intentionally excluded from this export list — it's passed
+# inline only to role 30-tailscale below to keep the secret out of the env
+# of every other role's child bash process.
+export USERNAME ADMIN_USERNAME AGENT_USER TIMEZONE SKIP_FIREWALL INSTALL_DOCKER GPU_PROFILE
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export SCRIPT_DIR
@@ -51,7 +54,18 @@ fi
 
 for role in "${ROLES[@]}"; do
   log "==> Running role: $role"
-  bash "$SCRIPT_DIR/roles/${role}.sh"
+  if [[ "$role" == "30-tailscale" ]]; then
+    # Pass TS_AUTHKEY only to this role's child bash; scrub from parent
+    # immediately after so any later role (or a re-ordered subset run
+    # like `bootstrap.sh 70-claude-code 30-tailscale`) cannot inherit it.
+    TS_AUTHKEY="$TS_AUTHKEY" bash "$SCRIPT_DIR/roles/${role}.sh"
+    unset TS_AUTHKEY
+  else
+    # Belt-and-suspenders: explicitly strip TS_AUTHKEY from each child's
+    # env so any callers that exported it before invoking bootstrap.sh
+    # cannot leak it into roles other than 30-tailscale.
+    env -u TS_AUTHKEY bash "$SCRIPT_DIR/roles/${role}.sh"
+  fi
 done
 
 log "Bootstrap complete. SSH in as $USERNAME and run user-level setup."

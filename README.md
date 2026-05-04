@@ -117,17 +117,17 @@ Every run saves a timestamped log to `/var/log/bootstrap/bootstrap-YYYYMMDD-HHMM
 
 | # | Role | What it does |
 |---|------|-------------|
-| 00 | system | timezone, 2 GB swap, sysctl tweaks |
-| 10 | user | create `luis`, passwordless sudo, SSH keys |
-| 20 | hardening | harden sshd, ufw, fail2ban |
-| 30 | tailscale | install + connect tailscale-ssh |
+| 00 | system | timezone, 2 GB swap, sysctl tweaks, unattended-upgrade auto-reboot, bootstrap log rotation |
+| 10 | user | create `luis`, narrow sudo allowlist (`agent-run`, `agent-service-ctl`, `apt-get update`), SSH keys |
+| 20 | hardening | harden sshd, ufw, fail2ban with sshd jail enabled |
+| 30 | tailscale | install + connect tailscale-ssh; clears `TS_AUTHKEY` from env after use |
 | 35 | gpu | NVIDIA driver + CDI (no-op on CPU hosts) |
 | 40 | dev-tools | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, python3, mosh, yadm |
-| 45 | agent-sandbox | rootless Podman + `agent` system user (no sudo) |
+| 42 | docker | rootless Podman config; optional hardened Docker |
+| 45 | agent-sandbox | `agent` system user (no sudo, no docker group); `agent-run` wrapper; sandbox smoke test |
 | 50 | shell | set zsh as default shell; write `~/.zshrc.local` with machine PATH entries |
-| 60 | langs | Node (fnm), Python (uv), Rust, Go |
-| 70 | claude-code | builds agent container image with Claude Code inside |
-| 80 | docker | rootless Podman config; optional hardened Docker |
+| 60 | langs | Node (fnm), Python (uv), Bun, Rust, Go — all sha256-pinned via `config/versions.conf` |
+| 70 | claude-code | builds `devbox-claude-code` image; UID/GID matched to host `agent` user via build args |
 | 90 | backups | restic skeleton (activation is manual) |
 
 ### After bootstrap — deploy dotfiles
@@ -143,9 +143,6 @@ yadm clone git@github.com:LuisMedinaG/.dotfiles.git
 # Run dotfiles bootstrap phases (Homebrew on macOS; Linux tooling on Linux)
 yadm bootstrap
 
-# Authenticate Claude Code (opens a URL — complete this on your Mac)
-claude
-
 # Start a persistent work session
 tmux new -s work
 ```
@@ -153,6 +150,43 @@ tmux new -s work
 `~/.zshrc.local` (written by role 50, not tracked by yadm) holds machine-specific PATH
 entries for fnm, cargo, and Go. It survives `yadm clone` and is sourced automatically
 by `.zshrc`.
+
+---
+
+## Running Claude Code in the agent sandbox
+
+Claude is **not** installed on the host PATH. Every invocation runs inside a rootless
+Podman container under a dedicated `agent` system user (no sudo, no docker group),
+launched via the `agent-run` wrapper. Workspaces persist at `/srv/workspaces/<name>`.
+
+```bash
+# First time: workspace is created on first run
+sudo agent-run my-project
+
+# Pass environment variables (the only flag the wrapper accepts)
+sudo agent-run my-project -e ANTHROPIC_API_KEY=sk-...
+```
+
+Sandbox guarantees (enforced by the wrapper, not caller-controlled):
+
+- `--cap-drop=ALL`, `--security-opt=no-new-privileges`, `--read-only` rootfs
+- `--userns=keep-id` — container UID matches the host `agent` user
+- Isolated `agent-net` Podman network; no access to host loopback or other containers
+- tmpfs for `/tmp`, `/run`, `~/.claude`, `~/.cache`, `~/.npm`
+- Workspace mounted at `/work` (the only host path the container sees)
+
+The wrapper rejects all extra podman flags (`--privileged`, `-v /:/host`, `--network=host`,
+`--`, etc.). Verify the sandbox after bootstrap:
+
+```bash
+sudo /usr/local/libexec/agent-sandbox-smoke-test.sh
+```
+
+To manage agent-related systemd units (without granting blanket sudo):
+
+```bash
+sudo agent-service-ctl restart agent-foo.service
+```
 
 ---
 
@@ -194,7 +228,8 @@ Connect VS Code on your Mac to the devbox and open repos in isolated Docker cont
 
 ### Host prerequisites (handled by bootstrap)
 
-- Role 80 installs Docker CE and adds `luis` to the `docker` group.
+- Rootless Podman (configured by role 42) is the default container runtime.
+- Docker CE is installed only when bootstrap runs with `INSTALL_DOCKER=1`. The default is `0`; the interactive user is **not** added to the `docker` group regardless.
 - VS Code CLI is installed to `~/.local/bin/code`:
 
 ```bash
@@ -250,8 +285,44 @@ Cmd+Shift+P → Dev Containers: Rebuild Container
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `USERNAME` | `luis` | User to create |
+| `ADMIN_USERNAME` | `$USERNAME` | Separate admin account; defaults to `USERNAME` for single-user dev boxes |
+| `AGENT_USER` | `agent` | Dedicated agent system user (no sudo) |
 | `TIMEZONE` | `America/Mexico_City` | Host timezone |
 | `SKIP_FIREWALL` | `0` | Set to `1` to skip ufw + fail2ban. **sshd hardening still runs** (root login, password auth, etc. are disabled regardless). |
-| `TS_AUTHKEY` | _(empty)_ | Tailscale auth key for unattended connect |
+| `INSTALL_DOCKER` | `0` | Set to `1` to install rootful Docker alongside Podman (userns-remap enabled) |
+| `GPU_PROFILE` | `consumer` | `none` \| `consumer` \| `datacenter` |
+| `TS_AUTHKEY` | _(empty)_ | Tailscale auth key for unattended connect (cleared after use) |
 
 > Legacy: `SKIP_UFW` is still honored as a fallback when `SKIP_FIREWALL` is unset.
+
+---
+
+## Testing
+
+Bats-based E2E suite asserts post-bootstrap state: SSH posture, UFW rules,
+fail2ban jail, user/sudoers separation, agent sandbox isolation, agent-run
+escape rejection, container UID alignment, restic skeleton, log hygiene.
+
+Install bats-core first — bootstrap does not install it (it's a test
+dependency, not a runtime one):
+
+```bash
+# Ubuntu/Debian (the bootstrapped host)
+sudo apt-get install -y bats
+
+# macOS (only needed for run-local.sh on your Mac)
+brew install bats-core
+```
+
+Then run the suite:
+
+```bash
+# On any bootstrapped host
+sudo bats tests/e2e.bats
+
+# Or spin up a throwaway Ubuntu 24.04 VM (requires multipass on your Mac)
+tests/run-local.sh
+```
+
+CI runs `shellcheck` + `terraform validate` on every PR. The full E2E suite
+runs on a self-hosted runner when a commit message or PR body contains `[e2e]`.

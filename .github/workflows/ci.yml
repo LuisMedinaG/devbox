@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   shellcheck:
@@ -19,4 +20,51 @@ jobs:
           shellcheck --severity=warning \
             bootstrap/bootstrap.sh \
             bootstrap/lib/*.sh \
-            bootstrap/roles/*.sh
+            bootstrap/roles/*.sh \
+            tests/run-local.sh
+
+  terraform-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform fmt check
+        run: terraform -chdir=terraform fmt -check -diff
+      - name: Terraform validate
+        run: |
+          cd terraform
+          terraform init -backend=false
+          terraform validate
+
+  # Full bootstrap + bats E2E suite on a self-hosted runner (your devbox).
+  # Triggered by:
+  #   - workflow_dispatch (manual via Actions UI or `gh workflow run ci.yml`)
+  #   - push to any branch where the head commit contains [e2e]
+  #   - PR from this same repo (not a fork) with [e2e] in the body
+  # External-fork PRs cannot trigger this — the head.repo.full_name guard
+  # prevents untrusted code from running on the self-hosted runner.
+  e2e:
+    runs-on: self-hosted
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(github.event.pull_request.body, '[e2e]')
+      ) ||
+      (
+        github.event_name == 'push' &&
+        contains(github.event.head_commit.message, '[e2e]')
+      )
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install prerequisites (bats-core, multipass)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats
+          if ! command -v multipass >/dev/null 2>&1; then
+            sudo snap install multipass
+          fi
+      - name: Run E2E suite via run-local.sh
+        run: bash tests/run-local.sh
+        timeout-minutes: 30
