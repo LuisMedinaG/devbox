@@ -209,31 +209,24 @@ setup() {
   [ "$status" -ne 0 ]
 }
 
-@test "agent-run accepts -e KEY=VALUE" {
-  # Parsing only — don't actually spin up a container here.
-  run bash -c '
-    source /usr/local/bin/agent-run 2>/dev/null || true
-    # Simulate the arg parsing inline.
-    ENV_ARGS=()
-    set -- "workspace" -e "FOO=bar" -e "BAZ=qux"
-    shift  # consume workspace
-    while [[ $# -gt 0 ]]; do
-      case "$1" in
-        -e) shift; ENV_ARGS+=(-e "$1"); shift;;
-        *) echo "rejected: $1" >&2; exit 1;;
-      esac
-    done
-    echo "accepted: ${ENV_ARGS[*]}"
-  '
-  [ "$status" -eq 0 ]
-  echo "$output" | grep -q "accepted"
+@test "agent-run accepts -e KEY=VALUE without rejecting at parse time" {
+  # Use a non-existent image so podman fails fast AFTER the wrapper's parser
+  # has already accepted the -e args. If parsing rejects -e, agent-run exits
+  # with the wrapper's "Error: unknown argument" which we grep for.
+  AGENT_IMAGE="does-not-exist:latest" \
+    run /usr/local/bin/agent-run "smoke$$" -e "FOO=bar" -e "BAZ=qux"
+  [ "$status" -ne 0 ]    # podman pull fails — that's fine
+  ! echo "$output" | grep -qi "unknown argument"
+  ! echo "$output" | grep -qi "-e requires KEY=VALUE"
 }
 
 # ---------------------------------------------------------------------------
-# Sandbox isolation (uses same flags as agent-run)
+# Sandbox isolation (uses same flags as agent-run; checks rely only on
+# binaries shipped in alpine to avoid passing for the wrong reason)
 # ---------------------------------------------------------------------------
 
 @test "sandbox: cannot read /etc/shadow" {
+  # `cat` is in alpine; this exercises the actual permission check.
   run sudo -u "$AGENT_USER" podman run --rm \
     --userns=keep-id --security-opt=no-new-privileges --cap-drop=ALL \
     --read-only --tmpfs /tmp --network=agent-net \
@@ -241,20 +234,37 @@ setup() {
   [ "$status" -ne 0 ]
 }
 
-@test "sandbox: cannot reach docker socket" {
+@test "sandbox: docker socket is not exposed inside container" {
+  # Use `test -e` (in alpine's busybox) instead of curl so a missing curl
+  # binary doesn't cause this test to pass for the wrong reason.
+  # If the socket existed inside the container, test -e would exit 0;
+  # we want the inverse: socket should not exist.
   run sudo -u "$AGENT_USER" podman run --rm \
     --userns=keep-id --security-opt=no-new-privileges --cap-drop=ALL \
     --read-only --tmpfs /tmp --network=agent-net \
-    alpine:latest sh -c "curl --unix-socket /var/run/docker.sock http://localhost/version"
+    alpine:latest sh -c "test -e /var/run/docker.sock"
   [ "$status" -ne 0 ]
 }
 
-@test "sandbox: cannot sudo inside container" {
+@test "sandbox: NoNewPrivs is set on container processes" {
+  # Replaces the old "sudo -n true" check (alpine ships no sudo, so it
+  # passed for the wrong reason). This asserts the actual kernel-level
+  # flag that prevents setuid-based escalation, regardless of which
+  # binaries happen to be in the image.
   run sudo -u "$AGENT_USER" podman run --rm \
     --userns=keep-id --security-opt=no-new-privileges --cap-drop=ALL \
     --read-only --tmpfs /tmp --network=agent-net \
-    alpine:latest sh -c "sudo -n true"
-  [ "$status" -ne 0 ]
+    alpine:latest sh -c "grep -q 'NoNewPrivs:.*1' /proc/self/status"
+  [ "$status" -eq 0 ]
+}
+
+@test "sandbox: process runs without any capabilities" {
+  # CapEff in /proc/self/status should be all zeros under --cap-drop=ALL.
+  run sudo -u "$AGENT_USER" podman run --rm \
+    --userns=keep-id --security-opt=no-new-privileges --cap-drop=ALL \
+    --read-only --tmpfs /tmp --network=agent-net \
+    alpine:latest sh -c 'awk "/^CapEff:/{print \$2}" /proc/self/status | grep -q "^0\+$"'
+  [ "$status" -eq 0 ]
 }
 
 # ---------------------------------------------------------------------------

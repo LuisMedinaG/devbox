@@ -38,11 +38,13 @@ if [[ "${SKIP_FIREWALL:-0}" == "0" ]]; then
     ufw allow OpenSSH >/dev/null
     ufw allow 60000:61000/udp >/dev/null
   fi
+fi
 
-  # Enable the sshd jail explicitly — Ubuntu 24.04's fail2ban ships without
-  # any jails active by default, so installing it without jail.local leaves
-  # the service running but doing nothing.
-  cat >/etc/fail2ban/jail.local <<'EOF'
+# fail2ban is independent of UFW — SSH brute-force protection should run even
+# when SKIP_FIREWALL=1 (which is meant to skip ufw, not all defenses).
+# Ubuntu 24.04's fail2ban ships without any jails active by default, so
+# installing it without jail.local leaves the service running but doing nothing.
+cat >/etc/fail2ban/jail.local <<'EOF'
 [DEFAULT]
 bantime  = 1h
 findtime = 10m
@@ -54,5 +56,4 @@ port     = ssh
 logpath  = %(sshd_log)s
 backend  = %(sshd_backend)s
 EOF
-  enable_service fail2ban
-fi
+enable_service fail2ban

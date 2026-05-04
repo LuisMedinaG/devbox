@@ -26,10 +26,9 @@ enable_service tailscaled
 if ! tailscale status >/dev/null 2>&1; then
   if [[ -n "$TS_AUTHKEY" ]]; then
     tailscale up --ssh --authkey "$TS_AUTHKEY" --accept-routes
-    # Clear the key from the environment immediately after use so it does not
-    # appear in any subsequent log output or child process environments.
-    TS_AUTHKEY=""
-    export TS_AUTHKEY
+    # Note: this role runs in a child bash process; clearing TS_AUTHKEY here
+    # does not affect the parent. The parent bootstrap.sh unsets it after
+    # this role completes (search "unset TS_AUTHKEY" in bootstrap.sh).
   else
     warn "Run: sudo tailscale up --ssh   (no TS_AUTHKEY provided)"
   fi

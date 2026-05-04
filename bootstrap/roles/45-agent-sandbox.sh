@@ -125,7 +125,7 @@ exec runuser -u "$AGENT_USER" -- podman run --rm \
   --tmpfs /run:rw,size=64m \
   --tmpfs /home/claudeuser/.claude:rw,size=256m \
   --tmpfs /home/claudeuser/.cache:rw,size=256m \
-  --tmpfs /home/claudeuser/.npm-global:rw,size=128m \
+  --tmpfs /home/claudeuser/.npm:rw,size=128m \
   --network=agent-net \
   --volume "${WORKSPACE_DIR}:/work:Z,rw" \
   --workdir /work \

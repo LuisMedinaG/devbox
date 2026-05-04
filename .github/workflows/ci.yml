@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   shellcheck:
@@ -36,36 +37,34 @@ jobs:
           terraform validate
 
   # Full bootstrap + bats E2E suite on a self-hosted runner (your devbox).
-  # Triggered only when the PR body or a commit message contains [e2e],
-  # or when a maintainer manually dispatches via workflow_dispatch.
-  # The runner uses Multipass to spin up a throwaway Ubuntu 24.04 VM,
-  # runs bootstrap inside it, then tears it down. KVM must be available.
+  # Triggered by:
+  #   - workflow_dispatch (manual via Actions UI or `gh workflow run ci.yml`)
+  #   - push to any branch where the head commit contains [e2e]
+  #   - PR from this same repo (not a fork) with [e2e] in the body
+  # External-fork PRs cannot trigger this — the head.repo.full_name guard
+  # prevents untrusted code from running on the self-hosted runner.
   e2e:
     runs-on: self-hosted
     if: |
       github.event_name == 'workflow_dispatch' ||
-      contains(github.event.pull_request.body, '[e2e]') ||
-      contains(github.event.head_commit.message, '[e2e]')
+      (
+        github.event_name == 'pull_request' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(github.event.pull_request.body, '[e2e]')
+      ) ||
+      (
+        github.event_name == 'push' &&
+        contains(github.event.head_commit.message, '[e2e]')
+      )
     steps:
       - uses: actions/checkout@v4
       - name: Install prerequisites (bats-core, multipass)
         run: |
+          sudo apt-get update
           sudo apt-get install -y bats
           if ! command -v multipass >/dev/null 2>&1; then
             sudo snap install multipass
           fi
       - name: Run E2E suite via run-local.sh
-        run: bash tests/run-local.sh
-        timeout-minutes: 30
-
-  # Manually trigger the full E2E suite from the Actions UI or gh CLI:
-  #   gh workflow run ci.yml --field ref=<branch>
-  workflow_dispatch_e2e:
-    runs-on: self-hosted
-    if: github.event_name == 'workflow_dispatch'
-    needs: []
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run E2E suite
         run: bash tests/run-local.sh
         timeout-minutes: 30

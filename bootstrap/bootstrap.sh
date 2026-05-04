@@ -52,6 +52,13 @@ fi
 for role in "${ROLES[@]}"; do
   log "==> Running role: $role"
   bash "$SCRIPT_DIR/roles/${role}.sh"
+  # Scrub TS_AUTHKEY from the parent shell as soon as Tailscale is up.
+  # Each role runs in a child bash process, so a child unsetting the var
+  # would not affect subsequent roles' environments. Doing it here ensures
+  # the secret is gone from the env that role 35+ inherit.
+  if [[ "$role" == "30-tailscale" && -n "${TS_AUTHKEY:-}" ]]; then
+    unset TS_AUTHKEY
+  fi
 done
 
 log "Bootstrap complete. SSH in as $USERNAME and run user-level setup."
