@@ -113,7 +113,10 @@ fi
 
 # --- Rust (rustup-init) ---
 # Rust publishes a sha256 sidecar file alongside each rustup-init binary.
-RUSTUP_LATEST=$(gh_latest "rust-lang/rustup")
+# rust-lang/rustup doesn't use GitHub Releases; use the official stable TOML.
+RUSTUP_LATEST=$(curl -fsSL "https://static.rust-lang.org/rustup/release-stable.toml" \
+  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+[[ "$RUSTUP_LATEST" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "  ! rustup  could not parse version from release-stable.toml"; RUSTUP_LATEST="$RUSTUP_VERSION"; }
 if check "rustup" "$RUSTUP_VERSION" "$RUSTUP_LATEST" && [[ "$UPDATE" == "1" ]]; then
   echo "    Fetching rustup sha256s from sidecar files..."
   set_var RUSTUP_VERSION        "$RUSTUP_LATEST"
