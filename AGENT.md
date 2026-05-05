@@ -15,7 +15,7 @@ bootstrap/
   lib/common.sh   Helpers: log/warn/die, once, ensure_line, ensure_kv,
                   enable_service (systemctl), reload_sshd, as_user, apt_install
   roles/          00-system  10-user  20-hardening  30-tailscale  40-dev-tools
-                  50-shell   60-langs  70-claude-code  80-docker  90-backups
+                  42-docker  45-agent-sandbox  50-shell  60-langs  70-claude-code  90-backups
   config/         ssh-authorized-keys.example  tmux.conf
                   (real ssh-authorized-keys is gitignored; copy from .example)
 ```
@@ -49,7 +49,7 @@ Bootstrap writes a timestamped log of all role output (stdout + stderr) to `/var
 - **Bootstrap defaults**: `USERNAME=luis`, `TIMEZONE=America/Mexico_City`, `SKIP_FIREWALL=0` (legacy `SKIP_UFW` still works).
 - **Tailscale**: machine name and tailnet are user-specific. Resolve via `tailscale status` on the host or your tailnet admin console.
 - **iOS access**: Tailscale + Terminus with Mosh enabled; Mosh installed via role 40.
-- **ufw is active** — SSH (22) and Mosh UDP (60000–61000) are open. Add new service ports via ufw in the relevant role.
+- **ufw is active** — Mosh UDP (60000–61000) is open. Port 22 is restricted to Tailscale CGNAT (`100.64.0.0/10`) by role 30 after enrollment; public SSH is closed. Add new service ports via ufw in the relevant role.
 
 ## Roles summary
 
@@ -58,14 +58,14 @@ Bootstrap writes a timestamped log of all role output (stdout + stderr) to `/var
 | 00-system | timezone, 2 GB swap at `/swapfile`, sysctl |
 | 10-user | create `luis`, passwordless sudo, SSH keys, loginctl linger |
 | 20-hardening | harden sshd, ufw (allow SSH + Mosh), fail2ban |
-| 30-tailscale | install + `tailscale up --ssh` |
+| 30-tailscale | install + `tailscale up --ssh`; restricts port 22 to CGNAT after enrollment |
 | 35-gpu | NVIDIA driver + CDI; no-op on CPU hosts (`GPU_PROFILE=none`) |
 | 40-dev-tools | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, python3, mosh, yadm |
 | 45-agent-sandbox | rootless Podman + `agent` system user (no sudo) |
 | 50-shell | set zsh as default; write `~/.zshrc.local` with machine PATH entries |
 | 60-langs | Node (fnm → `~/.fnm`), uv, Rust, Go |
 | 70-claude-code | builds agent container image; no host claude binary |
-| 80-docker | rootless Podman config; optional hardened Docker (`INSTALL_DOCKER=1`) |
+| 42-docker | rootless Podman config; optional hardened Docker (`INSTALL_DOCKER=1`) |
 | 90-backups | restic skeleton (activation is manual) |
 
 ## Editing guidelines

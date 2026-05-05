@@ -1,0 +1,32 @@
+name: update-versions
+
+on:
+  schedule:
+    - cron: '0 10 * * 1'  # Every Monday at 10am UTC
+  workflow_dispatch:       # Allow manual trigger from GitHub UI
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for version updates
+        run: bash bootstrap/update-versions.sh --update
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Open PR if versions.conf changed
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: bump pinned tool versions'
+          title: 'chore: bump pinned tool versions'
+          body: |
+            Automated version bump from `update-versions.sh`.
+
+            Review the diff — merge when the new versions look correct.
+            NVIDIA and `AGENT_BASE_IMAGE` are not automated; check manually if needed.
+          branch: auto/bump-versions
+          delete-branch: true
+          labels: dependencies

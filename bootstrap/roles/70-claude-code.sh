@@ -5,9 +5,13 @@
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
+VERSIONS_CONF="$SCRIPT_DIR/config/versions.conf"
+[[ -f "$VERSIONS_CONF" ]] && source "$VERSIONS_CONF"
+
 AGENT_USER="${AGENT_USER:-agent}"
 IMAGE_NAME="devbox-claude-code"
 IMAGE_TAG="${CLAUDE_CODE_VERSION:-latest}"
+BASE_IMAGE="${AGENT_BASE_IMAGE:-node:22-slim}"
 CONTAINERFILE="/usr/local/share/devbox/Containerfile.claude-code"
 
 if ! id -u "$AGENT_USER" >/dev/null 2>&1; then
@@ -18,8 +22,8 @@ install -d /usr/local/share/devbox
 
 # Containerfile for the Claude Code agent image.
 # Uses the official Node LTS base; installs claude-code as a non-root user.
-cat >"$CONTAINERFILE" <<'CFILE'
-FROM node:22-slim
+cat >"$CONTAINERFILE" <<CFILE
+FROM ${BASE_IMAGE}
 
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
@@ -35,7 +39,7 @@ WORKDIR /home/claudeuser
 # Install Claude Code globally for this user.
 RUN npm install -g @anthropic-ai/claude-code
 
-ENV PATH="/home/claudeuser/.npm-global/bin:/home/claudeuser/node_modules/.bin:${PATH}"
+ENV PATH="/home/claudeuser/.npm-global/bin:/home/claudeuser/node_modules/.bin:\${PATH}"
 
 WORKDIR /work
 ENTRYPOINT ["claude"]

@@ -8,13 +8,6 @@ if [[ "$(getent passwd "$USERNAME" | cut -d: -f7)" != "$ZSH_BIN" ]]; then
   chsh -s "$ZSH_BIN" "$USERNAME"
 fi
 
-# Pre-yadm tmux fallback — dotfiles will provide the real config at
-# ~/.config/tmux/tmux.conf once yadm clone runs.
-if [[ ! -f "$HOME_DIR/.tmux.conf" ]]; then
-  install -m 644 -o "$USERNAME" -g "$USERNAME" \
-    "$SCRIPT_DIR/config/tmux.conf" "$HOME_DIR/.tmux.conf"
-fi
-
 # Create an empty .zshrc so yadm clone has a file to replace.
 # Do NOT write config here — dotfiles own .zshrc.
 ZSHRC="$HOME_DIR/.zshrc"

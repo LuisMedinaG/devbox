@@ -8,3 +8,5 @@
 
 # OpenCode plugin state (machine-local, not part of the bootstrap)
 .opencode/
+
+venv/

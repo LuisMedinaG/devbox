@@ -25,8 +25,22 @@ enable_service tailscaled
 
 if ! tailscale status >/dev/null 2>&1; then
   if [[ -n "$TS_AUTHKEY" ]]; then
-    tailscale up --ssh --authkey "$TS_AUTHKEY" --accept-routes
+    tailscale up --ssh --authkey "$TS_AUTHKEY" \
+      --hostname devbox \
+      --advertise-tags=tag:devbox
   else
-    warn "Run: sudo tailscale up --ssh   (no TS_AUTHKEY provided)"
+    warn "Run: sudo tailscale up --ssh --hostname devbox --advertise-tags=tag:devbox"
+  fi
+fi
+
+# Restrict SSH to Tailscale CGNAT range only — public port 22 is closed.
+# Tailscale SSH (--ssh above) remains the sole access path; traditional SSH
+# keys are kept as a fallback reachable only through the Tailscale overlay.
+if [[ "${SKIP_FIREWALL:-0}" == "0" ]] && ufw status 2>/dev/null | grep -q '^Status: active'; then
+  if tailscale status >/dev/null 2>&1; then
+    ufw delete allow OpenSSH >/dev/null 2>&1 || true
+    ufw allow from 100.64.0.0/10 to any port 22 comment "SSH via Tailscale only" >/dev/null
+  else
+    warn "Tailscale not connected — port 22 remains open; re-run role 30 after 'tailscale up'"
   fi
 fi
