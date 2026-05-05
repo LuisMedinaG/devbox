@@ -81,7 +81,7 @@ fi
 # Single binary for all arches; one sha256 covers both.
 # versions.conf stores the bare version (no v-prefix); 60-langs.sh adds v in the URL.
 FNM_LATEST=$(gh_latest "Schniz/fnm")
-if check "fnm" "$FNM_VERSION" "$FNM_LATEST" && [[ "$UPDATE" == "1" ]]; then
+if check "fnm" "${FNM_VERSION#v}" "$FNM_LATEST" && [[ "$UPDATE" == "1" ]]; then
   echo "    Fetching fnm sha256..."
   set_var FNM_VERSION "$FNM_LATEST"
   set_var FNM_SHA256  "$(remote_sha256 "https://github.com/Schniz/fnm/releases/download/v${FNM_LATEST}/fnm-linux.zip")"
@@ -113,8 +113,7 @@ fi
 
 # --- Rust (rustup-init) ---
 # Rust publishes a sha256 sidecar file alongside each rustup-init binary.
-RUSTUP_LATEST=$(curl -fsSL "https://static.rust-lang.org/rustup/release-stable.toml" \
-  | awk -F'"' '/^version/ {print $2}')
+RUSTUP_LATEST=$(gh_latest "rust-lang/rustup")
 if check "rustup" "$RUSTUP_VERSION" "$RUSTUP_LATEST" && [[ "$UPDATE" == "1" ]]; then
   echo "    Fetching rustup sha256s from sidecar files..."
   set_var RUSTUP_VERSION        "$RUSTUP_LATEST"
