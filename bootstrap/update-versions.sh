@@ -1,134 +1,205 @@
 #!/usr/bin/env bash
-# Checks for newer versions of all tools pinned in config/versions.conf.
-# Downloads are not executed — only sha256s of release artifacts are fetched.
+# Update pinned tool versions in config/versions.conf.
 #
 # Usage:
-#   ./update-versions.sh           # dry-run: show what's outdated
-#   ./update-versions.sh --update  # fetch new sha256s and rewrite versions.conf
+#   update-versions.sh                # check all tools
+#   update-versions.sh --update       # rewrite versions.conf with new pins
+#   update-versions.sh [--update] go  # restrict to a single tool
 #
-# Set GITHUB_TOKEN to avoid GitHub API rate-limiting (60 req/hr unauthenticated).
+# Set GITHUB_TOKEN to avoid GitHub API rate limits (60 req/hr unauthenticated).
+#
+# Adding a new tool:
+#   1. Add its pins to config/versions.conf (NAME_VERSION, NAME_SHA256_*).
+#   2. Define <name>::latest (echo upstream version) and <name>::sync <ver>
+#      (write new sha256s via set_pin).
+#   3. Append `register_tool <name> <NAME_VERSION>` in the registry section.
+
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VERSIONS_CONF="$SCRIPT_DIR/config/versions.conf"
 
-UPDATE=0
-[[ "${1:-}" == "--update" ]] && UPDATE=1
+# ---------- output ----------
 
-GRN='\033[0;32m' YLW='\033[1;33m' NC='\033[0m'
-outdated=0
+GRN='\033[0;32m'; YLW='\033[1;33m'; RED='\033[0;31m'; NC='\033[0m'
 
-# --- Helpers ---
+ok()   { printf "  ${GRN}✓${NC} %-10s %s\n"      "$1" "$2"; }
+upd()  { printf "  ${YLW}↑${NC} %-10s %s → %s\n" "$1" "$2" "$3"; }
+warn() { printf "  ${RED}!${NC} %-10s %s\n"      "$1" "$2" >&2; }
 
-# sha256 of a remote URL; works on macOS (shasum) and Linux (sha256sum).
-remote_sha256() {
-  curl -fsSL "$1" \
-    | (command -v sha256sum >/dev/null 2>&1 && sha256sum || shasum -a 256) \
-    | awk '{print $1}'
-}
+# ---------- portable helpers ----------
 
-# sed -i that works on both BSD (macOS) and GNU.
-sed_inplace() {
-  if sed --version 2>/dev/null | grep -q GNU; then
-    sed -i "$@"
-  else
-    sed -i '' "$@"
+sha256_cmd() {
+  if command -v sha256sum >/dev/null 2>&1; then sha256sum
+  else shasum -a 256
   fi
 }
 
-set_var() {
-  sed_inplace "s|^${1}=.*|${1}=\"${2}\"|" "$VERSIONS_CONF"
+sed_inplace() {
+  if sed --version >/dev/null 2>&1; then sed -i "$@"
+  else sed -i '' "$@"
+  fi
 }
 
-# Fetch latest GitHub release tag (strips leading 'v').
+# ---------- fetch primitives (the "factory" parts a tool plugin composes) ----------
+
+# sha256 of a remote artifact (we download to hash, not to install).
+remote_sha256()   { curl -fsSL "$1" | sha256_cmd | awk '{print $1}'; }
+
+# sha256 from a sidecar file shaped like "<hex>  filename".
+sidecar_sha256()  { curl -fsSL "$1" | awk '{print $1}'; }
+
+# sha256 for a filename pattern within a SHASUMS-style manifest.
+manifest_sha256() { curl -fsSL "$1" | awk -v p="$2" '$0 ~ p {print $1; exit}'; }
+
+# Latest GitHub release tag with optional prefix stripped (e.g. "bun-").
+# Always strips a leading "v" so the result is bare semver.
 gh_latest() {
+  local repo="$1" prefix="${2:-}"
   curl -fsSL \
     ${GITHUB_TOKEN:+-H "Authorization: Bearer $GITHUB_TOKEN"} \
-    "https://api.github.com/repos/${1}/releases/latest" \
+    "https://api.github.com/repos/${repo}/releases/latest" \
     | grep '"tag_name"' | head -1 \
-    | sed 's/.*"tag_name": *"v\{0,1\}//;s/".*//'
+    | sed -E "s/.*\"tag_name\": *\"${prefix}v?//; s/\".*//"
 }
 
-# Print status and return 0 if an update is available, 1 if already current.
-check() {
-  local name="$1" current="$2" latest="$3"
-  if [[ "$current" == "$latest" ]]; then
-    printf "  ${GRN}✓${NC} %-10s %s\n" "$name" "$current"
-    return 1
-  fi
-  printf "  ${YLW}↑${NC} %-10s %s → %s\n" "$name" "$current" "$latest"
-  outdated=$((outdated + 1))
+# Reject anything that isn't x.y.z (with optional -suffix).
+require_semver() {
+  [[ "$2" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].+)?$ ]] \
+    || { warn "$1" "unparseable version: '$2'"; return 1; }
 }
 
-# --- Load current pins ---
+# ---------- versions.conf I/O ----------
+
+set_pin() {
+  local key="$1" value="$2"
+  [[ -n "$value" ]] || { warn "$key" "empty value, refusing to write"; return 1; }
+  sed_inplace "s|^${key}=.*|${key}=\"${value}\"|" "$VERSIONS_CONF"
+}
+
+# ---------- tool registry ----------
+
+REGISTERED_TOOLS=()
+declare -A VAR_OF=()
+
+register_tool() {
+  REGISTERED_TOOLS+=("$1")
+  VAR_OF[$1]="$2"
+}
+
+# ---------- tool plugins ----------
+
+go::latest() {
+  curl -fsSL "https://go.dev/dl/?mode=json" \
+    | grep '"version"' | head -1 | sed 's/.*"go//;s/".*//'
+}
+go::sync() {
+  local v="$1"
+  set_pin GO_VERSION      "$v"
+  set_pin GO_SHA256_AMD64 "$(remote_sha256 "https://go.dev/dl/go${v}.linux-amd64.tar.gz")"
+  set_pin GO_SHA256_ARM64 "$(remote_sha256 "https://go.dev/dl/go${v}.linux-arm64.tar.gz")"
+}
+register_tool go GO_VERSION
+
+fnm::latest() { gh_latest Schniz/fnm; }
+fnm::sync() {
+  local v="$1"
+  set_pin FNM_VERSION "$v"
+  set_pin FNM_SHA256  "$(remote_sha256 "https://github.com/Schniz/fnm/releases/download/v${v}/fnm-linux.zip")"
+}
+register_tool fnm FNM_VERSION
+
+uv::latest() { gh_latest astral-sh/uv; }
+uv::sync() {
+  local v="$1"
+  local base="https://github.com/astral-sh/uv/releases/download/${v}"
+  set_pin UV_VERSION      "$v"
+  set_pin UV_SHA256_AMD64 "$(remote_sha256 "${base}/uv-x86_64-unknown-linux-musl.tar.gz")"
+  set_pin UV_SHA256_ARM64 "$(remote_sha256 "${base}/uv-aarch64-unknown-linux-musl.tar.gz")"
+}
+register_tool uv UV_VERSION
+
+# Bun tags releases as "bun-vX.Y.Z" — strip the "bun-" prefix.
+bun::latest() { gh_latest oven-sh/bun "bun-"; }
+bun::sync() {
+  local v="$1"
+  local manifest="https://github.com/oven-sh/bun/releases/download/bun-v${v}/SHASUMS256.txt"
+  set_pin BUN_VERSION      "$v"
+  set_pin BUN_SHA256_AMD64 "$(manifest_sha256 "$manifest" 'bun-linux-x64-baseline\.zip$')"
+  set_pin BUN_SHA256_ARM64 "$(manifest_sha256 "$manifest" 'bun-linux-aarch64\.zip$')"
+}
+register_tool bun BUN_VERSION
+
+# Rustup ships via static.rust-lang.org, not GitHub Releases.
+rustup::latest() {
+  curl -fsSL "https://static.rust-lang.org/rustup/release-stable.toml" \
+    | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1
+}
+rustup::sync() {
+  local v="$1"
+  local base="https://static.rust-lang.org/rustup/archive/${v}"
+  set_pin RUSTUP_VERSION      "$v"
+  set_pin RUSTUP_SHA256_AMD64 "$(sidecar_sha256 "${base}/x86_64-unknown-linux-gnu/rustup-init.sha256")"
+  set_pin RUSTUP_SHA256_ARM64 "$(sidecar_sha256 "${base}/aarch64-unknown-linux-gnu/rustup-init.sha256")"
+}
+register_tool rustup RUSTUP_VERSION
+
+# ---------- driver ----------
+
+UPDATE=0
+SELECTED=""
+for arg in "$@"; do
+  case "$arg" in
+    --update)  UPDATE=1 ;;
+    -h|--help) sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -*)        warn args "unknown flag: $arg"; exit 2 ;;
+    *)         SELECTED="$arg" ;;
+  esac
+done
+
+[[ -f "$VERSIONS_CONF" ]] || { warn config "not found: $VERSIONS_CONF"; exit 1; }
+# shellcheck disable=SC1090
 source "$VERSIONS_CONF"
 
+if [[ -n "$SELECTED" && -z "${VAR_OF[$SELECTED]:-}" ]]; then
+  warn args "unknown tool: $SELECTED (known: ${REGISTERED_TOOLS[*]})"
+  exit 2
+fi
+
 echo "Checking versions..."
-echo
+outdated=0
 
-# --- Go ---
-# https://go.dev/dl/?mode=json returns the latest stable release.
-GO_LATEST=$(curl -fsSL "https://go.dev/dl/?mode=json" \
-  | grep '"version"' | head -1 | sed 's/.*"go//;s/".*//')
-if check "go" "$GO_VERSION" "$GO_LATEST" && [[ "$UPDATE" == "1" ]]; then
-  echo "    Fetching Go sha256s..."
-  set_var GO_VERSION        "$GO_LATEST"
-  set_var GO_SHA256_AMD64   "$(remote_sha256 "https://go.dev/dl/go${GO_LATEST}.linux-amd64.tar.gz")"
-  set_var GO_SHA256_ARM64   "$(remote_sha256 "https://go.dev/dl/go${GO_LATEST}.linux-arm64.tar.gz")"
-fi
+for tool in "${REGISTERED_TOOLS[@]}"; do
+  [[ -z "$SELECTED" || "$SELECTED" == "$tool" ]] || continue
 
-# --- fnm ---
-# Single binary for all arches; one sha256 covers both.
-# versions.conf stores the bare version (no v-prefix); 60-langs.sh adds v in the URL.
-FNM_LATEST=$(gh_latest "Schniz/fnm")
-if check "fnm" "${FNM_VERSION#v}" "$FNM_LATEST" && [[ "$UPDATE" == "1" ]]; then
-  echo "    Fetching fnm sha256..."
-  set_var FNM_VERSION "$FNM_LATEST"
-  set_var FNM_SHA256  "$(remote_sha256 "https://github.com/Schniz/fnm/releases/download/v${FNM_LATEST}/fnm-linux.zip")"
-fi
+  var="${VAR_OF[$tool]}"
+  current="${!var-}"
+  current="${current#v}"   # tolerate accidental v-prefix in versions.conf
 
-# --- uv ---
-UV_LATEST=$(gh_latest "astral-sh/uv")
-if check "uv" "$UV_VERSION" "$UV_LATEST" && [[ "$UPDATE" == "1" ]]; then
-  echo "    Fetching uv sha256s..."
-  set_var UV_VERSION        "$UV_LATEST"
-  set_var UV_SHA256_AMD64   "$(remote_sha256 "https://github.com/astral-sh/uv/releases/download/${UV_LATEST}/uv-x86_64-unknown-linux-musl.tar.gz")"
-  set_var UV_SHA256_ARM64   "$(remote_sha256 "https://github.com/astral-sh/uv/releases/download/${UV_LATEST}/uv-aarch64-unknown-linux-musl.tar.gz")"
-fi
+  if ! latest=$("${tool}::latest") || ! require_semver "$tool" "$latest"; then
+    warn "$tool" "skipped — could not determine latest"
+    continue
+  fi
 
-# --- Bun ---
-# Hashes come from the official SHASUMS256.txt in the release assets.
-# Must match the artifact names used in 60-langs.sh:
-#   amd64 → bun-linux-x64-baseline.zip
-#   arm64 → bun-linux-aarch64.zip
-# Bun tags as "bun-v1.x.y" (not "v1.x.y"), so strip the "bun-v" prefix.
-BUN_LATEST=$(gh_latest "oven-sh/bun" | sed 's/^bun-v//')
-if check "bun" "$BUN_VERSION" "$BUN_LATEST" && [[ "$UPDATE" == "1" ]]; then
-  echo "    Fetching Bun sha256s from SHASUMS256.txt..."
-  SHASUMS=$(curl -fsSL "https://github.com/oven-sh/bun/releases/download/bun-v${BUN_LATEST}/SHASUMS256.txt")
-  set_var BUN_VERSION        "$BUN_LATEST"
-  set_var BUN_SHA256_AMD64   "$(awk '/bun-linux-x64-baseline\.zip$/ {print $1}' <<<"$SHASUMS")"
-  set_var BUN_SHA256_ARM64   "$(awk '/bun-linux-aarch64\.zip$/ {print $1}' <<<"$SHASUMS")"
-fi
+  if [[ "$current" == "$latest" ]]; then
+    ok "$tool" "$current"
+    continue
+  fi
 
-# --- Rust (rustup-init) ---
-# Rust publishes a sha256 sidecar file alongside each rustup-init binary.
-# rust-lang/rustup doesn't use GitHub Releases; use the official stable TOML.
-RUSTUP_LATEST=$(curl -fsSL "https://static.rust-lang.org/rustup/release-stable.toml" \
-  | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
-[[ "$RUSTUP_LATEST" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "  ! rustup  could not parse version from release-stable.toml"; RUSTUP_LATEST="$RUSTUP_VERSION"; }
-if check "rustup" "$RUSTUP_VERSION" "$RUSTUP_LATEST" && [[ "$UPDATE" == "1" ]]; then
-  echo "    Fetching rustup sha256s from sidecar files..."
-  set_var RUSTUP_VERSION        "$RUSTUP_LATEST"
-  set_var RUSTUP_SHA256_AMD64   "$(curl -fsSL "https://static.rust-lang.org/rustup/archive/${RUSTUP_LATEST}/x86_64-unknown-linux-gnu/rustup-init.sha256" | awk '{print $1}')"
-  set_var RUSTUP_SHA256_ARM64   "$(curl -fsSL "https://static.rust-lang.org/rustup/archive/${RUSTUP_LATEST}/aarch64-unknown-linux-gnu/rustup-init.sha256" | awk '{print $1}')"
-fi
+  upd "$tool" "$current" "$latest"
+  outdated=$((outdated + 1))
+
+  if [[ "$UPDATE" == 1 ]]; then
+    echo "    syncing ${tool}@${latest}..."
+    "${tool}::sync" "$latest"
+  fi
+done
 
 echo
 if [[ "$outdated" -eq 0 ]]; then
-  printf "${GRN}All tools up to date.${NC}\n"
-elif [[ "$UPDATE" == "1" ]]; then
-  printf "${GRN}versions.conf updated. Review with: git diff config/versions.conf${NC}\n"
+  printf '%bAll tools up to date.%b\n' "$GRN" "$NC"
+elif [[ "$UPDATE" == 1 ]]; then
+  printf '%bversions.conf updated. Review with: git diff config/versions.conf%b\n' "$GRN" "$NC"
 else
-  printf "${YLW}${outdated} tool(s) outdated. Run with --update to apply.${NC}\n"
+  printf '%b%d tool(s) outdated. Run with --update to apply.%b\n' "$YLW" "$outdated" "$NC"
 fi
