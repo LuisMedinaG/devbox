@@ -71,7 +71,7 @@ Bootstrap writes a timestamped log of all role output (stdout + stderr) to `/var
 | 10-user | create `luis`, passwordless sudo, SSH keys, loginctl linger |
 | 20-hardening | harden sshd, ufw (allow SSH + Mosh), fail2ban |
 | 30-tailscale | install + `tailscale up --ssh`; restricts port 22 to CGNAT after enrollment |
-| 35-gpu | NVIDIA driver + CDI; no-op on CPU hosts (`GPU_PROFILE=none`) |
+| 35-gpu | NVIDIA driver + container toolkit + CDI spec at `/etc/cdi/nvidia.yaml`; auto-skipped if `lspci` finds no NVIDIA device |
 | 40-dev-tools | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, python3, mosh, yadm |
 | 42-docker | rootless Podman config for `$USERNAME`; optional hardened Docker (`INSTALL_DOCKER=1`) |
 | 45-agent-sandbox | `agent` system user (no sudo, no docker group); `agent-run` wrapper at `/usr/local/bin/agent-run`; smoke test at `/usr/local/libexec/agent-sandbox-smoke-test.sh` |

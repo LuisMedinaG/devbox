@@ -121,7 +121,7 @@ Every run saves a timestamped log to `/var/log/bootstrap/bootstrap-YYYYMMDD-HHMM
 | 10 | user | create `luis`, narrow sudo allowlist (`agent-run`, `agent-service-ctl`, `apt-get update`), SSH keys |
 | 20 | hardening | harden sshd, ufw, fail2ban with sshd jail enabled |
 | 30 | tailscale | install + connect tailscale-ssh; clears `TS_AUTHKEY` from env after use |
-| 35 | gpu | NVIDIA driver + CDI (no-op on CPU hosts) |
+| 35 | gpu | NVIDIA driver + container toolkit + CDI spec so Podman can attach GPUs via `--device nvidia.com/gpu=all`; auto-skipped on CPU-only hosts |
 | 40 | dev-tools | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, python3, mosh, yadm |
 | 42 | docker | rootless Podman config; optional hardened Docker |
 | 45 | agent-sandbox | `agent` system user (no sudo, no docker group); `agent-run` wrapper; sandbox smoke test |
@@ -290,7 +290,7 @@ Cmd+Shift+P → Dev Containers: Rebuild Container
 | `TIMEZONE` | `America/Mexico_City` | Host timezone |
 | `SKIP_FIREWALL` | `0` | Set to `1` to skip ufw + fail2ban. **sshd hardening still runs** (root login, password auth, etc. are disabled regardless). |
 | `INSTALL_DOCKER` | `0` | Set to `1` to install rootful Docker alongside Podman (userns-remap enabled) |
-| `GPU_PROFILE` | `consumer` | `none` \| `consumer` \| `datacenter` |
+| `GPU_PROFILE` | `consumer` | `consumer` (workstation/laptop GPUs) \| `datacenter` (enables `nvidia-persistenced` for Tesla/A100/H100) \| `none` (skip role 35 entirely). Role auto-skips anyway on hosts without an NVIDIA device. |
 | `TS_AUTHKEY` | _(empty)_ | Tailscale auth key for unattended connect (cleared after use) |
 
 > Legacy: `SKIP_UFW` is still honored as a fallback when `SKIP_FIREWALL` is unset.

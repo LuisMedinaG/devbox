@@ -1,7 +1,22 @@
 #!/usr/bin/env bash
-# NVIDIA driver + Container Toolkit + CDI, gated on GPU detection.
-# GPU_PROFILE: none | consumer | datacenter (default: auto-detect via consumer)
-# Pinned versions live in config/versions.env; sourced below if present.
+# Role 35: NVIDIA GPU enablement (driver + Container Toolkit + CDI spec).
+#
+# Purpose: lets containers (Podman in role 42, agent sandbox in role 45) access
+# an NVIDIA GPU via `--device nvidia.com/gpu=all`. Required only if the host has
+# an NVIDIA card and you want CUDA workloads (training, local LLM inference,
+# CUDA-accelerated tooling) inside the agent sandbox.
+#
+# Behavior:
+#   - Auto-skips on CPU-only hosts (lspci finds no NVIDIA device).
+#   - Installs the driver branch pinned by NVIDIA_DRIVER_BRANCH.
+#   - Installs nvidia-container-toolkit and generates a CDI spec at
+#     /etc/cdi/nvidia.yaml so containers can reference GPUs by name.
+#   - With GPU_PROFILE=datacenter, enables nvidia-persistenced (server cards).
+#
+# Knobs (override via env or config/versions.conf):
+#   GPU_PROFILE          consumer (default) | datacenter | none
+#   NVIDIA_DRIVER_BRANCH apt package name of the driver branch
+#   CUDA_KEYRING_URL     URL of NVIDIA's cuda-keyring .deb (adds apt repo)
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
@@ -20,7 +35,7 @@ VERSIONS_ENV="$SCRIPT_DIR/config/versions.conf"
 : "${NVIDIA_DRIVER_BRANCH:=nvidia-driver-550-server}"
 : "${CUDA_KEYRING_DEB:=cuda-keyring_1.1-1_all.deb}"
 : "${CUDA_KEYRING_URL:=https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/x86_64/${CUDA_KEYRING_DEB}}"
-: "${GPU_PROFILE:=consumer}"  # consumer | datacenter
+: "${GPU_PROFILE:=consumer}"  # consumer = workstation/laptop GPUs; datacenter = Tesla/A100/H100 (enables nvidia-persistenced)
 
 apt_update_once
 apt_install pciutils  # ensures lspci is available on subsequent idempotent runs
@@ -46,7 +61,9 @@ if ! command -v nvidia-ctk >/dev/null 2>&1; then
   apt_install nvidia-container-toolkit
 fi
 
-# --- CDI spec (lets Podman/containerd reference GPUs by name) ---
+# --- CDI spec (Container Device Interface) ---
+# Generates /etc/cdi/nvidia.yaml so rootless Podman can attach the GPU via
+# `--device nvidia.com/gpu=all` without privileged mode or ad-hoc bind mounts.
 install -d /etc/cdi
 nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
 
