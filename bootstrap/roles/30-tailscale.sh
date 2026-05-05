@@ -28,6 +28,9 @@ if ! tailscale status >/dev/null 2>&1; then
     tailscale up --ssh --authkey "$TS_AUTHKEY" \
       --hostname devbox \
       --advertise-tags=tag:devbox
+      # Note: this role runs in a child bash process; clearing TS_AUTHKEY here
+      # does not affect the parent. The parent bootstrap.sh unsets it after
+      # this role completes (search "unset TS_AUTHKEY" in bootstrap.sh).Ï
   else
     warn "Run: sudo tailscale up --ssh --hostname devbox --advertise-tags=tag:devbox"
   fi

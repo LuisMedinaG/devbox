@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Builds the agent container image that includes Claude Code.
-# Claude is NOT installed on the host PATH — agents run via `agent-run`.
+# Claude is NOT installed on the host PATH — agents run via `sudo agent-run`.
 # Requires role 45-agent-sandbox (rootless Podman + agent user) to have run first.
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
@@ -18,6 +18,13 @@ if ! id -u "$AGENT_USER" >/dev/null 2>&1; then
   die "Agent user '$AGENT_USER' not found. Run role 45-agent-sandbox first."
 fi
 
+# Resolve the agent user's UID/GID so the in-container user matches the host
+# agent UID exactly. Combined with --userns=keep-id in agent-run, the container
+# process runs as the same numeric UID as the host agent user, ensuring
+# workspace volume writes land with the correct ownership.
+AGENT_UID=$(id -u "$AGENT_USER")
+AGENT_GID=$(id -g "$AGENT_USER")
+
 install -d /usr/local/share/devbox
 
 # Containerfile for the Claude Code agent image.
@@ -25,19 +32,27 @@ install -d /usr/local/share/devbox
 cat >"$CONTAINERFILE" <<CFILE
 FROM ${BASE_IMAGE}
 
+ARG AGENT_UID=1000
+ARG AGENT_GID=1000
+
 RUN apt-get update -y && \
     apt-get install -y --no-install-recommends \
       git curl ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
-# Create a non-root user inside the container.
-RUN useradd -m -u 1000 -s /bin/bash claudeuser
+# Create in-container user whose UID/GID matches the host agent user.
+RUN groupadd -g ${AGENT_GID} claudeuser && \
+    useradd -m -u ${AGENT_UID} -g claudeuser -s /bin/bash claudeuser && \
+    mkdir -p /home/claudeuser/.npm-global && \
+    chown -R claudeuser:claudeuser /home/claudeuser
 
 USER claudeuser
 WORKDIR /home/claudeuser
 
-# Install Claude Code globally for this user.
-RUN npm install -g @anthropic-ai/claude-code
+# Set npm prefix before installing — without this, `npm install -g` writes to
+# /usr/local which is not writable by claudeuser and the install silently fails.
+RUN npm config set prefix /home/claudeuser/.npm-global && \
+    npm install -g @anthropic-ai/claude-code
 
 ENV PATH="/home/claudeuser/.npm-global/bin:/home/claudeuser/node_modules/.bin:\${PATH}"
 
@@ -45,20 +60,25 @@ WORKDIR /work
 ENTRYPOINT ["claude"]
 CFILE
 
-log "Building agent image ${IMAGE_NAME}:${IMAGE_TAG} as $AGENT_USER ..."
+log "Building agent image ${IMAGE_NAME}:${IMAGE_TAG} as $AGENT_USER (UID=${AGENT_UID}) ..."
 sudo -u "$AGENT_USER" podman build \
+  --build-arg AGENT_UID="$AGENT_UID" \
+  --build-arg AGENT_GID="$AGENT_GID" \
   -t "${IMAGE_NAME}:${IMAGE_TAG}" \
   -f "$CONTAINERFILE" \
   /usr/local/share/devbox
 
-# Export the image name so agent-run can pick it up by default.
-AGENT_IMAGE_FILE="/etc/devbox/agent-image"
+# Verify the installed binary is reachable inside the image.
+log "Verifying claude binary inside image ..."
+sudo -u "$AGENT_USER" podman run --rm \
+  --entrypoint=/bin/sh \
+  "${IMAGE_NAME}:${IMAGE_TAG}" \
+  -c 'which claude && claude --version' \
+  || die "claude binary not found in image — check npm prefix and PATH."
+
+# Persist the image name so agent-run picks it up by default.
 install -d /etc/devbox
-echo "${IMAGE_NAME}:${IMAGE_TAG}" >"$AGENT_IMAGE_FILE"
+echo "${IMAGE_NAME}:${IMAGE_TAG}" >/etc/devbox/agent-image
 
-# Patch agent-run to use the locally built image unless overridden.
-sed -i "s|IMAGE=\${AGENT_IMAGE:-.*}|IMAGE=\${AGENT_IMAGE:-${IMAGE_NAME}:${IMAGE_TAG}}|" \
-  /usr/local/bin/agent-run
-
-log "Claude Code agent image built. Use: agent-run <workspace-name>"
+log "Claude Code agent image built. Use: sudo agent-run <workspace-name>"
 log "The host has no 'claude' binary — all agent invocations go through the sandbox."

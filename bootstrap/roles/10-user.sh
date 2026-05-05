@@ -15,15 +15,39 @@ fi
 
 loginctl enable-linger "$USERNAME"
 
-# Narrow sudo allowlist for $USERNAME: restart agent services only.
-# No NOPASSWD:ALL — escalation requires the admin path.
+# agent-service-ctl: validated wrapper around systemctl for agent-*.service units.
+# sudo's command glob matching does not expand shell globs in argument position,
+# so `systemctl restart agent-*` in sudoers would not match actual unit names.
+# This wrapper validates the action and unit name itself, then calls systemctl.
+AGENT_SVC_CTL="/usr/local/sbin/agent-service-ctl"
+cat >"$AGENT_SVC_CTL" <<'SVCCTL'
+#!/usr/bin/env bash
+set -euo pipefail
+ACTION="${1:-}"
+UNIT="${2:-}"
+case "$ACTION" in
+  start|stop|restart|status) ;;
+  *) echo "Usage: agent-service-ctl <start|stop|restart|status> <agent-*.service>" >&2; exit 1;;
+esac
+[[ "$UNIT" =~ ^agent-[a-z][a-z0-9_-]*\.service$ ]] || {
+  echo "Error: unit must match agent-<name>.service" >&2; exit 1
+}
+exec /bin/systemctl "$ACTION" "$UNIT"
+SVCCTL
+chmod 755 "$AGENT_SVC_CTL"
+
+# Narrow sudo allowlist for $USERNAME — no NOPASSWD:ALL.
+# /usr/local/bin/agent-run: runs the agent sandbox (drops to agent user via
+#   runuser inside the wrapper; caller supplies only workspace name + -e flags).
+# /usr/local/sbin/agent-service-ctl: validated systemctl for agent-*.service.
+# /usr/bin/apt-get update: limited package list refresh only.
 mkdir -p /etc/sudoers.d
 SUDOERS_TMP=$(mktemp)
 trap 'rm -f "$SUDOERS_TMP"' EXIT
 cat >"$SUDOERS_TMP" <<EOF
 # Narrow allowlist for $USERNAME — no blanket NOPASSWD:ALL
 Defaults:$USERNAME requiretty, !visiblepw
-$USERNAME ALL=(ALL) NOPASSWD: /bin/systemctl restart agent-*, /bin/systemctl stop agent-*, /bin/systemctl start agent-*, /usr/bin/apt-get update
+$USERNAME ALL=(root) NOPASSWD: /usr/local/bin/agent-run, /usr/local/sbin/agent-service-ctl, /usr/bin/apt-get update
 EOF
 visudo -cf "$SUDOERS_TMP" >/dev/null
 install -m 440 -o root -g root "$SUDOERS_TMP" /etc/sudoers.d/90-"$USERNAME"

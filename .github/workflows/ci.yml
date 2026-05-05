@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   shellcheck:
@@ -19,4 +20,40 @@ jobs:
           shellcheck --severity=warning \
             bootstrap/bootstrap.sh \
             bootstrap/lib/*.sh \
-            bootstrap/roles/*.sh
+            bootstrap/roles/*.sh \
+            tests/run-local.sh
+
+  terraform-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - name: Terraform fmt check
+        run: terraform -chdir=terraform fmt -check -diff
+      - name: Terraform validate
+        run: |
+          cd terraform
+          terraform init -backend=false
+          terraform validate
+
+  # Full bootstrap + bats E2E suite on a self-hosted runner.
+  # Manual-only — fire from the Actions UI or via `gh workflow run ci.yml`.
+  # The auto-triggers on PR body / commit message [e2e] tags were removed
+  # while no self-hosted runner is available; the job would otherwise sit
+  # queued forever on every PR. tests/run-local.sh remains the local
+  # equivalent — `bash tests/run-local.sh` on a host with multipass works.
+  e2e:
+    runs-on: self-hosted
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install prerequisites (bats-core, multipass)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bats
+          if ! command -v multipass >/dev/null 2>&1; then
+            sudo snap install multipass
+          fi
+      - name: Run E2E suite via run-local.sh
+        run: bash tests/run-local.sh
+        timeout-minutes: 30
