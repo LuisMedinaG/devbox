@@ -39,9 +39,9 @@ This repo is a **system provisioner** — it runs as root and owns everything at
 
 **Handoff sequence:**
 0. (Optional) `terraform apply` from `terraform/` — provisions the Hetzner server. Same end state as `hcloud server create`; pick whichever is documented in README.md.
-1. `bash bootstrap.sh` (root) — provisions machine, installs yadm
+1. `bash bootstrap.sh` (root) — provisions machine, installs yadm, clones dotfiles
 2. Role 50 writes `~/.zshrc.local` with machine-specific PATH entries (fnm, cargo, go) — not tracked by yadm
-3. `su - luis` → `yadm clone git@github.com:LuisMedinaG/.dotfiles.git` → `yadm bootstrap`
+3. Role 70 runs `yadm clone` + `yadm bootstrap` as luis — if it fails (GitHub SSH not configured), run manually
 4. Dotfiles own all config from here. `~/.zshrc.local` persists across yadm operations.
 
 **Rule:** Bootstrap must never write config into files that dotfiles owns (`.zshrc`, `.zshenv`, `.gitconfig`, etc.). Machine-specific shell entries belong in `~/.zshrc.local` or `~/.zshenv.local`.
@@ -71,6 +71,7 @@ Bootstrap writes a timestamped log of all role output (stdout + stderr) to `/var
 | 42-docker | rootless Podman for `$USERNAME`; user is NOT in docker group |
 | 50-shell | set zsh as default; write `~/.zshrc.local` with machine PATH entries |
 | 60-langs | Node (fnm → `~/.fnm`), uv, Bun, Rust, Go |
+| 70-dotfiles | yadm clone + bootstrap (runs as $USERNAME, requires GitHub SSH key) |
 
 ## Claude Code
 

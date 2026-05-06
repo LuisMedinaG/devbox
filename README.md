@@ -109,6 +109,8 @@ TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
 #   sudo tailscale up --ssh
 ```
 
+> **After bootstrap:** if you see `*** System restart required ***`, reboot the machine — kernel security updates were applied and won't take effect until a restart.
+
 ### Roles
 
 | # | Role | What it does |
@@ -122,6 +124,7 @@ TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
 | 42 | docker | rootless Podman; user is NOT in docker group |
 | 50 | shell | set zsh as default; write `~/.zshrc.local` with machine PATH entries |
 | 60 | langs | Node (fnm), Python (uv), Bun, Rust, Go — all sha256-pinned via `config/versions.conf` |
+| 70 | dotfiles | clone and bootstrap dotfiles via yadm (runs as the interactive user) |
 
 ### Logs
 
@@ -147,7 +150,7 @@ cat ~/.ssh/id_ed25519.pub >> config/ssh-authorized-keys
 
 ### After bootstrap — deploy dotfiles
 
-Bootstrap provisions the system. Dotfiles configure the user environment. Run these as `luis`:
+Bootstrap role 70 automatically clones and bootstraps dotfiles via yadm. If it fails (e.g., GitHub SSH not configured yet), run manually as `luis`:
 
 ```bash
 su - luis

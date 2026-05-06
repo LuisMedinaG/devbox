@@ -39,6 +39,7 @@ ROLES=(
   42-docker       # rootless Podman
   50-shell
   60-langs
+  70-dotfiles     # yadm clone + bootstrap (runs as $USERNAME, requires GitHub SSH)
 )
 
 if [[ $# -gt 0 ]]; then
@@ -62,3 +63,11 @@ for role in "${ROLES[@]}"; do
 done
 
 log "Bootstrap complete. SSH in as $USERNAME and run user-level setup."
+
+# If a kernel update was installed during bootstrap, a reboot is required.
+if [[ -f /var/run/reboot-required ]]; then
+  log ""
+  log "*** System restart required ***"
+  log "Kernel security updates were applied. Reboot now: reboot"
+  log "Then reconnect via: tailscale ssh $USERNAME@devbox"
+fi

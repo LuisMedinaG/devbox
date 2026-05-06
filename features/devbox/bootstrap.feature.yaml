@@ -116,6 +116,14 @@ components:
       5: Validates that fetched versions are valid semver before writing; skips tools where the upstream version cannot be parsed
       6: Supports GITHUB_TOKEN to avoid API rate limiting when fetching GitHub release metadata
 
+  DOTFILES:
+    name: Dotfiles Deployment
+    description: Role 70-dotfiles — clones and bootstraps user dotfiles via yadm.
+    requirements:
+      1: Clones the dotfiles git repo via yadm as the interactive user
+      2: Runs yadm bootstrap to install user-level tooling (Homebrew packages, configs)
+      2-note: Fails gracefully with a warning if GitHub SSH is not configured yet
+
 constraints:
   ENG:
     name: Engineering Constraints
