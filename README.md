@@ -372,4 +372,40 @@ sudo bats tests/e2e.bats
 tests/run-local.sh
 ```
 
-CI runs `shellcheck` + `terraform validate` on every PR.
+CI runs `shellcheck` + `terraform validate` + `acai push` on every PR.
+
+---
+
+## Spec-driven development (acai.sh)
+
+Feature specs live in `features/devbox/` as `*.feature.yaml` files. Each requirement has a stable ID (ACID) that is referenced in code comments and test names for traceability.
+
+### Dashboard
+
+Specs and ACID coverage are synced to the [acai.sh dashboard](https://app.acai.sh) on every CI run. Log in to review acceptance coverage per feature and implementation.
+
+### Local push
+
+```bash
+# Create a .env file in the repo root (gitignored)
+echo "ACAI_API_TOKEN=at_your_token" > .env
+
+# Push specs and ACID refs from your current branch
+npx @acai.sh/cli push --all
+```
+
+### Rotate or update the GitHub Actions secret
+
+```bash
+# Re-export the new token value, then:
+gh secret set ACAI_API_TOKEN --body "$ACAI_API_TOKEN" --repo LuisMedinaG/devbox
+
+# Verify
+gh secret list --repo LuisMedinaG/devbox
+```
+
+### Add a new spec
+
+1. Create `features/devbox/<feature-name>.feature.yaml`
+2. Reference ACIDs in code/tests as comments, e.g. `# bootstrap.HARDENING.1`
+3. Push: `npx @acai.sh/cli push --all` (or let CI do it)

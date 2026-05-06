@@ -80,6 +80,27 @@ npm install -g @anthropic-ai/claude-code
 claude --sandbox
 ```
 
+## Spec-driven development (acai.sh)
+
+Feature specs live in `features/devbox/` as `*.feature.yaml` files. Each requirement has a stable ID called an ACID (e.g. `bootstrap.HARDENING.1`).
+
+**Rules:**
+- Write or update the spec first, before changing code.
+- Reference ACIDs in code comments and test names co-located with the behavior they implement. Full ACID only — never partial IDs or lists.
+- Aim for at least one test block per ACID.
+- Never renumber requirements; use `deprecated: true` instead of deleting them.
+- Run `npx @acai.sh/cli skill` to load the full acai workflow into context before planning implementation work.
+
+**Push specs to the dashboard:**
+```bash
+npx @acai.sh/cli push --all   # requires ACAI_API_TOKEN in .env or environment
+```
+
+**Rotate the GitHub Actions secret:**
+```bash
+gh secret set ACAI_API_TOKEN --body "$ACAI_API_TOKEN" --repo LuisMedinaG/devbox
+```
+
 ## Editing guidelines
 
 - Bootstrap is the source of truth for host state. Don't configure things outside of it.
