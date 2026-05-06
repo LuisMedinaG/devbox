@@ -115,9 +115,13 @@ if ! as_user '[[ -d "$HOME/.cargo" ]]'; then
   RUSTUP_URL="https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/${RUSTUP_TRIPLE}/rustup-init"
   TMP_INIT=$(mktemp)
   download_verify "$RUSTUP_URL" "$TMP_INIT" "${!RUSTUP_SHA256_VAR}"
-  chmod +x "$TMP_INIT"
-  sudo -u "$USERNAME" -H "$TMP_INIT" -y --no-modify-path
-  rm -f "$TMP_INIT"
+  # rustup-init reads its own argv[0] path to detect proxy mode. Running from
+  # /tmp/tmp.* causes spurious "unknown proxy name: 'tmp'" errors. Install to a
+  # normal path first.
+  RUSTUP_INIT_BIN="/home/$USERNAME/.local/bin/rustup-init"
+  install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_INIT" "$RUSTUP_INIT_BIN"
+  as_user "$RUSTUP_INIT_BIN -y --no-modify-path"
+  rm -f "$TMP_INIT" "$RUSTUP_INIT_BIN"
 fi
 
 # --- Go ---
