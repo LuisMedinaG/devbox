@@ -72,10 +72,11 @@ Bootstrap writes a timestamped log of all role output (stdout + stderr) to `/var
 | 50-shell | set zsh as default; write `~/.zshrc.local` with machine PATH entries |
 | 60-langs | Node (fnm → `~/.fnm`), uv, Bun, Rust, Go |
 | 70-dotfiles | yadm clone + bootstrap (runs as $USERNAME, requires GitHub SSH key) |
+| 80-claude-code | npm install -g @anthropic-ai/claude-code |
 
 ## Claude Code
 
-Install as `luis` after dotfiles are deployed, then use the built-in sandbox:
+Installed automatically by role 80. Use the built-in sandbox:
 
 ```bash
 npm install -g @anthropic-ai/claude-code

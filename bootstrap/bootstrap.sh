@@ -40,6 +40,7 @@ ROLES=(
   50-shell
   60-langs
   70-dotfiles     # yadm clone + bootstrap (runs as $USERNAME, requires GitHub SSH)
+  80-claude-code  # npm install -g @anthropic-ai/claude-code
 )
 
 if [[ $# -gt 0 ]]; then
@@ -67,7 +68,6 @@ log "Bootstrap complete."
 NEEDS_REBOOT=""
 NEEDS_DOTFILES=""
 NEEDS_TAILSCALE=""
-NEEDS_CC=""
 
 # Check for kernel updates requiring reboot.
 if [[ -f /var/run/reboot-required ]]; then
@@ -83,42 +83,6 @@ fi
 # Check if Tailscale was enrolled. If not, instruct manual connect.
 if ! tailscale status >/dev/null 2>&1; then
   NEEDS_TAILSCALE=1
-fi
-
-# Check if Claude Code is installed.
-if ! as_user 'command -v claude >/dev/null 2>&1' 2>/dev/null; then
-  NEEDS_CC=1
-fi
-
-log ""
-log "=== NEXT STEPS ==="
-log ""
-
-if [[ -n "$NEEDS_REBOOT" ]]; then
-  log "1. REBOOT (kernel updates applied, restart required):"
-  log "   reboot"
-  log ""
-fi
-
-if [[ -n "$NEEDS_TAILSCALE" ]]; then
-  log "2. CONNECT TAILSCALE (if you didn't pass TS_AUTHKEY):"
-  log "   sudo tailscale up --ssh --hostname devbox --advertise-tags=tag:devbox"
-  log ""
-fi
-
-if [[ -n "$NEEDS_DOTFILES" ]]; then
-  log "3. DEPLOY DOTFILES — copy your private SSH key, then re-run:"
-  log "   # From your Mac:"
-  log "   scp ~/.ssh/id_ed25519 $USERNAME@$(hostname -I | awk '{print $1}'):~/.ssh/"
-  log "   # On this host:"
-  log "   sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 70-dotfiles"
-  log ""
-fi
-
-if [[ -n "$NEEDS_CC" ]]; then
-  log "4. INSTALL CLAUDE CODE:"
-  log "   npm install -g @anthropic-ai/claude-code"
-  log ""
 fi
 
 log "Reconnect after reboot: tailscale ssh $USERNAME@devbox"

@@ -143,6 +143,7 @@ After bootstrap completes, follow the on-screen next-step instructions (copy pri
 | 50 | shell | set zsh as default; write `~/.zshrc.local` with machine PATH entries |
 | 60 | langs | Node (fnm), Python (uv), Bun, Rust, Go — all sha256-pinned via `config/versions.conf` |
 | 70 | dotfiles | clone and bootstrap dotfiles via yadm (runs as the interactive user) |
+| 80 | claude-code | npm install -g @anthropic-ai/claude-code |
 
 ### Logs
 
@@ -234,13 +235,7 @@ After enrollment, connect with `tailscale ssh devbox`. Role 30 automatically res
 
 ## Claude Code
 
-Install as `luis` after dotfiles are deployed:
-
-```bash
-npm install -g @anthropic-ai/claude-code
-```
-
-Use Claude Code's built-in sandbox (bubblewrap on Linux) for filesystem and network isolation:
+Installed automatically by role 80-claude-code. Use the built-in sandbox:
 
 ```bash
 cd ~/path/to/repo

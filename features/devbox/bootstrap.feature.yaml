@@ -125,6 +125,12 @@ components:
       2: Runs yadm bootstrap to install user-level tooling (Homebrew packages, configs)
       2-note: Fails gracefully with a warning if GitHub SSH is not configured yet
 
+  CLAUDE_CODE:
+    name: Claude Code
+    description: Role 80-claude-code — installs Claude Code globally via npm.
+    requirements:
+      1: Installs @anthropic-ai/claude-code globally via npm as the interactive user
+
 constraints:
   ENG:
     name: Engineering Constraints
