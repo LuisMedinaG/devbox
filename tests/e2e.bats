@@ -51,8 +51,8 @@ setup() {
 @test "ufw allows SSH via Tailscale CGNAT" {
   run ufw status
   # Role 31 limits SSH to Tailscale CGNAT range (100.64.0.0/10) after enrollment.
-  # The rule appears as "22/tcp ALLOW IN 100.64.0.0/10" or similar.
-  echo "$output" | grep -qE "22/tcp.*100\.64\.0\.0/10|22/tcp.*ALLOW IN"
+  # Format: "22   ALLOW IN   100.64.0.0/10   # SSH via Tailscale only"
+  echo "$output" | grep -qE "^22\b.*ALLOW IN.*100\.64\.0\.0/10"
 }
 
 @test "ufw allows Mosh UDP" {
