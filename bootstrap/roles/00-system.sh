@@ -67,3 +67,7 @@ net.core.default_qdisc=fq
 net.ipv4.tcp_congestion_control=bbr
 EOF
 sysctl --system >/dev/null
+
+# Apply all pending upgrades now (fresh image has ~100+ backlog).
+# After this, unattended-upgrades handles ongoing security patches.
+DEBIAN_FRONTEND=noninteractive apt-get upgrade -y
