@@ -38,13 +38,12 @@ jobs:
 
   acai-push:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0   # full history so acai can resolve commit SHAs
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
       - name: Push specs and ACID refs to acai.sh
         # Skips gracefully on forks and when the secret is not set.
         if: ${{ env.ACAI_API_TOKEN != '' }}
