@@ -115,8 +115,9 @@ TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
 |---|------|-------------|
 | 00 | system | timezone, 2 GB swap, sysctl tweaks, unattended-upgrade auto-reboot, bootstrap log rotation |
 | 10 | user | create `luis`, narrow sudo allowlist (`apt-get update`), SSH keys |
-| 20 | hardening | harden sshd, ufw, fail2ban with sshd jail enabled |
+| 20 | hardening | harden sshd, fail2ban with sshd jail enabled |
 | 30 | tailscale | install + connect tailscale-ssh; clears `TS_AUTHKEY` from env after use |
+| 31 | firewall | ufw setup + port 22 CGNAT restriction — runs after Tailscale so public SSH is never closed prematurely |
 | 40 | dev-tools | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, python3, mosh, yadm |
 | 42 | docker | rootless Podman; user is NOT in docker group |
 | 50 | shell | set zsh as default; write `~/.zshrc.local` with machine PATH entries |

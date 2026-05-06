@@ -14,8 +14,8 @@ bootstrap/
   bootstrap.sh    Entry point; runs roles in order or a named subset
   lib/common.sh   Helpers: log/warn/die, once, ensure_line, ensure_kv,
                   enable_service (systemctl), reload_sshd, as_user, apt_install
-  roles/          00-system  10-user  20-hardening  30-tailscale  40-dev-tools
-                  42-docker  50-shell  60-langs  90-backups
+  roles/          00-system  10-user  20-hardening  30-tailscale
+                   31-firewall  40-dev-tools  42-docker  50-shell  60-langs
   config/         ssh-authorized-keys.example  tmux.conf
                   (real ssh-authorized-keys is gitignored; copy from .example)
 
@@ -56,7 +56,7 @@ Bootstrap writes a timestamped log of all role output (stdout + stderr) to `/var
 - **Bootstrap defaults**: `USERNAME=luis`, `TIMEZONE=America/Mexico_City`, `SKIP_FIREWALL=0` (legacy `SKIP_UFW` still works).
 - **Tailscale**: machine name and tailnet are user-specific. Resolve via `tailscale status` on the host or your tailnet admin console.
 - **iOS access**: Tailscale + Terminus with Mosh enabled; Mosh installed via role 40.
-- **ufw is active** — Mosh UDP (60000–61000) is open. Port 22 is restricted to Tailscale CGNAT (`100.64.0.0/10`) by role 30 after enrollment; public SSH is closed. Add new service ports via ufw in the relevant role.
+- **ufw is active** — role 31-firewall runs after Tailscale to prevent lock-out: port 22 stays open on public IP until Tailscale overlay is confirmed connected. Mosh UDP (60000–61000) is open. Port 22 is restricted to Tailscale CGNAT (`100.64.0.0/10`) only when a Tailscale connection exists. Add new service ports via ufw in the relevant role.
 
 ## Roles summary
 
@@ -64,12 +64,13 @@ Bootstrap writes a timestamped log of all role output (stdout + stderr) to `/var
 |------|-------------|
 | 00-system | timezone, 2 GB swap at `/swapfile`, sysctl |
 | 10-user | create `luis`, narrow sudo allowlist, SSH keys, loginctl linger |
-| 20-hardening | harden sshd, ufw (allow SSH + Mosh), fail2ban |
-| 30-tailscale | install + `tailscale up --ssh`; restricts port 22 to CGNAT after enrollment |
+| 20-hardening | harden sshd, fail2ban — **no UFW here**, public SSH stays open for recovery |
+| 30-tailscale | install + `tailscale up --ssh` |
+| 31-firewall | UFW — runs after Tailscale; restricts port 22 to CGNAT only if Tailscale is connected |
 | 40-dev-tools | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, python3, mosh, yadm |
 | 42-docker | rootless Podman for `$USERNAME`; user is NOT in docker group |
 | 50-shell | set zsh as default; write `~/.zshrc.local` with machine PATH entries |
-| 60-langs | Node (fnm → `~/.fnm`), uv, Rust, Go |
+| 60-langs | Node (fnm → `~/.fnm`), uv, Bun, Rust, Go |
 
 ## Claude Code
 

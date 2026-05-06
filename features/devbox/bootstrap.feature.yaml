@@ -26,29 +26,34 @@ components:
       4-1: Aborts if no SSH key source is available, to prevent lock-out
 
   HARDENING:
-    name: SSH and Firewall Hardening
-    description: Role 20-hardening — SSH drop-in config, UFW firewall, and fail2ban.
+    name: SSH and Service Hardening
+    description: Role 20-hardening — SSH drop-in config and fail2ban. UFW is handled separately by role 31-firewall, which runs after Tailscale to prevent lock-out.
     requirements:
       1: Disables root login over SSH
       2: Disables password authentication over SSH; public key only
       3: Disables X11 forwarding
-      4: Activates UFW with default deny-incoming policy
-      5: Opens SSH (port 22) and Mosh (UDP 60000-61000) in UFW
-      5-note: UFW initialization is skipped if already active, to preserve rules added by later roles
-      6: Configures and enables fail2ban with the sshd jail active
-      6-note: fail2ban runs even when SKIP_FIREWALL=1; that flag only suppresses UFW
+      4: Configures and enables fail2ban with the sshd jail active
+      4-note: fail2ban runs even when SKIP_FIREWALL=1; that flag only suppresses UFW
 
   TAILSCALE:
     name: Tailscale Networking
-    description: Role 30-tailscale — installs Tailscale and enrolls the host into the tailnet.
+    description: Role 30-tailscale — installs Tailscale and enrolls the host into the tailnet. UFW port 22 restriction is handled by role 31-firewall after this role completes.
     requirements:
       1: Installs and enables the tailscaled service
       2: Connects to the tailnet with Tailscale SSH enabled (tailscale up --ssh)
       3: Accepts an optional TS_AUTHKEY for unattended enrollment
       3-1: Clears TS_AUTHKEY from the environment immediately after role 30 completes so no other role inherits it
       4: TS_AUTHKEY must never appear in bootstrap log files
-      5: Once enrolled, restricts port 22 to the Tailscale CGNAT range (100.64.0.0/10) and removes the broad OpenSSH UFW rule
-      5-note: If Tailscale is not connected at role run time, port 22 remains open and a warning is emitted; re-running role 30 after enrollment completes the restriction
+
+  FIREWALL:
+    name: Firewall (UFW)
+    description: Role 31-firewall — runs after Tailscale so public SSH is never closed before the Tailscale overlay is available.
+    requirements:
+      1: Activates UFW with default deny-incoming policy
+      2: Opens SSH (port 22) and Mosh (UDP 60000-61000) in UFW
+      2-note: UFW initialization is skipped if already active, to preserve rules added by later roles
+      3: Once Tailscale is connected, restricts port 22 to the Tailscale CGNAT range (100.64.0.0/10) and removes the broad OpenSSH UFW rule
+      3-note: If Tailscale is not connected, port 22 remains open and a warning is emitted; re-running ensures recovery is always possible
 
   DEV_TOOLS:
     name: Developer Tools

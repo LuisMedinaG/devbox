@@ -32,8 +32,9 @@ log "Logging to $LOG_FILE"
 ROLES=(
   00-system
   10-user
-  20-hardening
-  30-tailscale
+  20-hardening    # sshd config + fail2ban only — no UFW, public SSH stays open
+  30-tailscale    # connect Tailscale overlay
+  31-firewall     # UFW — runs after Tailscale so port 22 is never closed prematurely
   40-dev-tools
   42-docker       # rootless Podman
   50-shell
