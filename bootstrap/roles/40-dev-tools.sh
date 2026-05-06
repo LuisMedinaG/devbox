@@ -18,6 +18,7 @@ apt_install \
   zoxide \
   yadm \
   mosh   # the metapackage; pulls mosh-server which UFW exposes on 60000-61000/udp
+  bats   # E2E test runner for post-bootstrap assertions
 
 [[ -x /usr/bin/fdfind ]] && ln -sf /usr/bin/fdfind /usr/local/bin/fd
 [[ -x /usr/bin/batcat ]] && ln -sf /usr/bin/batcat /usr/local/bin/bat
