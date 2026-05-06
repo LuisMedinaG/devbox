@@ -15,6 +15,18 @@ APT::Periodic::Unattended-Upgrade "1";
 APT::Periodic::AutocleanInterval "7";
 EOF
 
+# Suppress MOTD noise: ESM ads and pending-update counts that alarm on every login.
+# Unattended-upgrades handles patching automatically + reboots nightly if needed.
+for motd in /etc/update-motd.d/90-updates-available /etc/update-motd.d/95-hwe-eol /etc/update-motd.d/91-release-upgrade; do
+  [[ -x "$motd" ]] && chmod -x "$motd" || true
+done
+if [[ -x /etc/update-motd.d/95-hwe-eol ]]; then
+  chmod -x /etc/update-motd.d/95-hwe-eol
+fi
+if [[ -x /usr/lib/update-notifier/apt_check.py ]]; then
+  mv /usr/lib/update-notifier/apt_check.py /usr/lib/update-notifier/apt_check.py.disabled
+fi
+
 # Apply security patches automatically and reboot at 02:00 if required.
 # Without Automatic-Reboot, kernel CVE patches install but never activate.
 # bootstrap.SYSTEM.2

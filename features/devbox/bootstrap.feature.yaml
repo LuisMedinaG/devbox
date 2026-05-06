@@ -13,6 +13,7 @@ components:
       3: Creates a 2 GB swapfile if no swap is currently active, and persists it in /etc/fstab
       4: Configures sysctl for low swappiness (10), BBR TCP congestion control, and FQ qdisc
       5: Rotates bootstrap logs weekly, keeping 8 weeks of history
+      6: Suppresses MOTD noise (pending-update counts, ESM ads, release-upgrade nags) since unattended-upgrades handles patching
 
   USER:
     name: User Provisioning
