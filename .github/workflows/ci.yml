@@ -48,7 +48,7 @@ jobs:
       - name: Push specs and ACID refs to acai.sh
         # Skips gracefully on forks and when the secret is not set.
         if: ${{ env.ACAI_API_TOKEN != '' }}
-        run: npx @acai.sh/cli push --all
+        run: npx @acai.sh/cli push --all --target main
         env:
           ACAI_API_TOKEN: ${{ secrets.ACAI_API_TOKEN }}
 
