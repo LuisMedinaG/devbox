@@ -18,8 +18,9 @@ fi
 if as_user "yadm clone ${DOTFILES_REPO}"; then
   log "Dotfiles cloned successfully."
 else
-  warn "yadm clone failed — SSH to GitHub may not be configured yet."
-  warn "Run manually as $USERNAME after verifying: ssh -T git@github.com"
+  warn "yadm clone failed — luis needs a private SSH key to clone from GitHub."
+  warn "Run on your Mac:  scp ~/.ssh/id_ed25519 $USERNAME@$(hostname -I | awk '{print $1}'):~/.ssh/"
+  warn "Then on this host: sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 70-dotfiles"
   exit 0
 fi
 

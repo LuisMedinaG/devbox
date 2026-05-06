@@ -100,6 +100,10 @@ apt-get update -y && apt-get install -y git
 git clone https://github.com/LuisMedinaG/devbox.git ~/projects/devbox
 cd ~/projects/devbox/bootstrap
 
+# Copy your private SSH key so yadm can clone dotfiles from GitHub
+# (Hetzner --ssh-key injects only the public key for inbound access)
+scp ~/.ssh/id_ed25519 luis@devbox:~/.ssh/
+
 # TS_AUTHKEY is optional — connects Tailscale unattended so you don't need
 # a second SSH login. Get one at:
 # login.tailscale.com/admin/settings/keys → Generate auth key
