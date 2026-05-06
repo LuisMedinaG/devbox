@@ -54,9 +54,9 @@ hcloud ssh-key create --name mac-pub-id_ed --public-key "$(cat ~/.ssh/id_ed25519
 # Create server — CX23: 2 vCPU, 4 GB RAM, 40 GB SSD
 hcloud server create \
   --name devbox \
-  --type cx23 \
+  --type cx21 \
   --image ubuntu-24.04 \
-  --location nbg1 \
+  --location ash \
   --ssh-key macbook
 
 hcloud server list    # get the IP
