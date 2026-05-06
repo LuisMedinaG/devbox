@@ -102,33 +102,47 @@ cd ~/projects/devbox/bootstrap
 
 # TS_AUTHKEY is optional — connects Tailscale unattended so you don't need
 # a second SSH login. Get one at:
-# login.tailscale.com/admin/settings/keys → Generate auth key (Reusable: yes, Ephemeral: no)
+# login.tailscale.com/admin/settings/keys → Generate auth key
 TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
 
 # Without it, bootstrap still completes. Connect Tailscale manually after:
 #   sudo tailscale up --ssh
 ```
 
-### Logs
-
-Every run saves a timestamped log to `/var/log/bootstrap/bootstrap-YYYYMMDD-HHMMSS.log` — all role output (stdout + stderr). Check there first when troubleshooting.
-
 ### Roles
 
 | # | Role | What it does |
 |---|------|-------------|
 | 00 | system | timezone, 2 GB swap, sysctl tweaks, unattended-upgrade auto-reboot, bootstrap log rotation |
-| 10 | user | create `luis`, narrow sudo allowlist (`agent-run`, `agent-service-ctl`, `apt-get update`), SSH keys |
+| 10 | user | create `luis`, narrow sudo allowlist (`apt-get update`), SSH keys |
 | 20 | hardening | harden sshd, ufw, fail2ban with sshd jail enabled |
 | 30 | tailscale | install + connect tailscale-ssh; clears `TS_AUTHKEY` from env after use |
-| 35 | gpu | NVIDIA driver + container toolkit + CDI spec so Podman can attach GPUs via `--device nvidia.com/gpu=all`; auto-skipped on CPU-only hosts |
 | 40 | dev-tools | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, python3, mosh, yadm |
-| 42 | docker | rootless Podman config; optional hardened Docker |
-| 45 | agent-sandbox | `agent` system user (no sudo, no docker group); `agent-run` wrapper; sandbox smoke test |
-| 50 | shell | set zsh as default shell; write `~/.zshrc.local` with machine PATH entries |
+| 42 | docker | rootless Podman; user is NOT in docker group |
+| 50 | shell | set zsh as default; write `~/.zshrc.local` with machine PATH entries |
 | 60 | langs | Node (fnm), Python (uv), Bun, Rust, Go — all sha256-pinned via `config/versions.conf` |
-| 70 | claude-code | builds `devbox-claude-code` image; UID/GID matched to host `agent` user via build args |
-| 90 | backups | restic skeleton (activation is manual) |
+
+### Logs
+
+Every run saves a timestamped log to `/var/log/bootstrap/bootstrap-YYYYMMDD-HHMMSS.log` — all role output (stdout + stderr). Check there first when troubleshooting.
+
+```bash
+tail -f /var/log/bootstrap/bootstrap-$(date +%Y%m%d)*.log
+```
+
+### SSH keys
+
+Role 10 copies SSH keys to `~luis/.ssh/authorized_keys`. It uses, in order:
+
+1. `config/ssh-authorized-keys` if present (gitignored, never committed)
+2. `/root/.ssh/authorized_keys` — injected by Hetzner when the server is created with `--ssh-key`
+
+For non-Hetzner hosts, copy the template and add your key:
+
+```bash
+cp config/ssh-authorized-keys.example config/ssh-authorized-keys
+cat ~/.ssh/id_ed25519.pub >> config/ssh-authorized-keys
+```
 
 ### After bootstrap — deploy dotfiles
 
@@ -153,40 +167,71 @@ by `.zshrc`.
 
 ---
 
-## Running Claude Code in the agent sandbox
+## Tailscale
 
-Claude is **not** installed on the host PATH. Every invocation runs inside a rootless
-Podman container under a dedicated `agent` system user (no sudo, no docker group),
-launched via the `agent-run` wrapper. Workspaces persist at `/srv/workspaces/<name>`.
+### ACL (Tailscale admin console → Access controls)
 
-```bash
-# First time: workspace is created on first run
-sudo agent-run my-project
-
-# Pass environment variables (the only flag the wrapper accepts)
-sudo agent-run my-project -e ANTHROPIC_API_KEY=sk-...
+```json
+{
+    "groups": {
+        "group:owners": ["betousky01@gmail.com"]
+    },
+    "tagOwners": {
+        "tag:devbox": ["group:owners"]
+    },
+    "grants": [
+        {
+            "src": ["group:owners"],
+            "dst": ["tag:devbox"],
+            "ip":  ["*"]
+        }
+    ],
+    "ssh": [
+        {
+            "action": "accept",
+            "src":    ["group:owners"],
+            "dst":    ["tag:devbox"],
+            "users":  ["autogroup:nonroot", "root"]
+        }
+    ]
+}
 ```
 
-Sandbox guarantees (enforced by the wrapper, not caller-controlled):
+### Auth key settings
 
-- `--cap-drop=ALL`, `--security-opt=no-new-privileges`, `--read-only` rootfs
-- `--userns=keep-id` — container UID matches the host `agent` user
-- Isolated `agent-net` Podman network; no access to host loopback or other containers
-- tmpfs for `/tmp`, `/run`, `~/.claude`, `~/.cache`, `~/.npm`
-- Workspace mounted at `/work` (the only host path the container sees)
+| Setting | Value |
+|---|---|
+| Reusable | **no** (single-use per server) |
+| Ephemeral | **no** (devbox must persist after reboot) |
+| Pre-approved | **yes** |
+| Tags | `tag:devbox` |
 
-The wrapper rejects all extra podman flags (`--privileged`, `-v /:/host`, `--network=host`,
-`--`, etc.). Verify the sandbox after bootstrap:
+After enrollment, connect with `tailscale ssh devbox`. Role 30 automatically restricts port 22 to the Tailscale CGNAT range (`100.64.0.0/10`) — public SSH is closed; keys remain reachable only through the overlay.
+
+---
+
+## Claude Code
+
+Install as `luis` after dotfiles are deployed:
 
 ```bash
-sudo /usr/local/libexec/agent-sandbox-smoke-test.sh
+npm install -g @anthropic-ai/claude-code
 ```
 
-To manage agent-related systemd units (without granting blanket sudo):
+Use Claude Code's built-in sandbox (bubblewrap on Linux) for filesystem and network isolation:
 
 ```bash
-sudo agent-service-ctl restart agent-foo.service
+cd ~/path/to/repo
+claude --sandbox
 ```
+
+Or enable it permanently in `.claude/settings.json`:
+
+```json
+{ "sandbox": { "enabled": true } }
+```
+
+Git credentials and SSH keys work normally since Claude runs as your user.
 
 ---
 
@@ -228,9 +273,8 @@ Connect VS Code on your Mac to the devbox and open repos in isolated Docker cont
 
 ### Host prerequisites (handled by bootstrap)
 
-- Rootless Podman (configured by role 42) is the default container runtime.
-- Docker CE is installed only when bootstrap runs with `INSTALL_DOCKER=1`. The default is `0`; the interactive user is **not** added to the `docker` group regardless.
-- VS Code CLI is installed to `~/.local/bin/code`:
+- Rootless Podman (configured by role 42) is the default container runtime. Its socket is exposed as `DOCKER_HOST` in `~/.zshenv.local` so Dev Containers works without installing Docker.
+- VS Code CLI (`~/.local/bin/code`) — install once on the host:
 
 ```bash
 curl -Lk 'https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64' \
@@ -285,38 +329,42 @@ Cmd+Shift+P → Dev Containers: Rebuild Container
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `USERNAME` | `luis` | User to create |
-| `ADMIN_USERNAME` | `$USERNAME` | Separate admin account; defaults to `USERNAME` for single-user dev boxes |
-| `AGENT_USER` | `agent` | Dedicated agent system user (no sudo) |
 | `TIMEZONE` | `America/Mexico_City` | Host timezone |
-| `SKIP_FIREWALL` | `0` | Set to `1` to skip ufw + fail2ban. **sshd hardening still runs** (root login, password auth, etc. are disabled regardless). |
-| `INSTALL_DOCKER` | `0` | Set to `1` to install rootful Docker alongside Podman (userns-remap enabled) |
-| `GPU_PROFILE` | `consumer` | `consumer` (workstation/laptop GPUs) \| `datacenter` (enables `nvidia-persistenced` for Tesla/A100/H100) \| `none` (skip role 35 entirely). Role auto-skips anyway on hosts without an NVIDIA device. |
+| `SKIP_FIREWALL` | `0` | Set to `1` to skip ufw + fail2ban. **sshd hardening still runs** |
 | `TS_AUTHKEY` | _(empty)_ | Tailscale auth key for unattended connect (cleared after use) |
 
-> Legacy: `SKIP_UFW` is still honored as a fallback when `SKIP_FIREWALL` is unset.
+---
+
+## Updating pinned versions
+
+All third-party binaries (Go, fnm, uv, Bun, Rust) are pinned with a version + sha256 in `bootstrap/config/versions.conf`. Bootstrap aborts if any hash is empty.
+
+```bash
+# Check what's outdated (dry-run, no changes)
+./bootstrap/update-versions.sh
+
+# Fetch new versions and rewrite versions.conf in place
+./bootstrap/update-versions.sh --update
+
+# Review, then commit
+git diff bootstrap/config/versions.conf
+git add bootstrap/config/versions.conf && git commit -m "chore: bump pinned versions"
+```
+
+Set `GITHUB_TOKEN` to avoid GitHub API rate-limiting (60 req/hr unauthenticated).
 
 ---
 
 ## Testing
 
 Bats-based E2E suite asserts post-bootstrap state: SSH posture, UFW rules,
-fail2ban jail, user/sudoers separation, agent sandbox isolation, agent-run
-escape rejection, container UID alignment, restic skeleton, log hygiene.
-
-Install bats-core first — bootstrap does not install it (it's a test
-dependency, not a runtime one):
+fail2ban jail, user/sudoers separation, Podman rootless, log hygiene.
 
 ```bash
-# Ubuntu/Debian (the bootstrapped host)
-sudo apt-get install -y bats
+# Install bats-core first
+sudo apt-get install -y bats          # on the bootstrapped host
+brew install bats-core                # macOS (for run-local.sh)
 
-# macOS (only needed for run-local.sh on your Mac)
-brew install bats-core
-```
-
-Then run the suite:
-
-```bash
 # On any bootstrapped host
 sudo bats tests/e2e.bats
 
@@ -324,6 +372,4 @@ sudo bats tests/e2e.bats
 tests/run-local.sh
 ```
 
-CI runs `shellcheck` + `terraform validate` on every PR. The full E2E suite
-is wired up but **manual-only** for now — fire it from the Actions UI or
-`gh workflow run ci.yml` once a self-hosted runner is available.
+CI runs `shellcheck` + `terraform validate` on every PR.
