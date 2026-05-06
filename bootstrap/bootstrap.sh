@@ -5,17 +5,13 @@
 set -euo pipefail
 
 : "${USERNAME:=luis}"
-: "${ADMIN_USERNAME:=$USERNAME}"  # separate admin account; defaults to USERNAME for dev boxes
-: "${AGENT_USER:=agent}"          # dedicated sandbox user, no sudo
 : "${TIMEZONE:=America/Mexico_City}"
 : "${TS_AUTHKEY:=}"               # optional, prefills tailscale auth — NOT exported globally
 : "${SKIP_FIREWALL:=${SKIP_UFW:-0}}"  # set to 1 to skip ufw only; fail2ban + sshd hardening still run
-: "${INSTALL_DOCKER:=0}"          # set to 1 to install rootful Docker alongside Podman
-: "${GPU_PROFILE:=consumer}"      # none | consumer | datacenter
 # TS_AUTHKEY is intentionally excluded from this export list — it's passed
 # inline only to role 30-tailscale below to keep the secret out of the env
 # of every other role's child bash process.
-export USERNAME ADMIN_USERNAME AGENT_USER TIMEZONE SKIP_FIREWALL INSTALL_DOCKER GPU_PROFILE
+export USERNAME TIMEZONE SKIP_FIREWALL
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export SCRIPT_DIR
@@ -38,14 +34,10 @@ ROLES=(
   10-user
   20-hardening
   30-tailscale
-  35-gpu          # NVIDIA driver + CDI (no-op on CPU hosts)
   40-dev-tools
-  42-docker       # rootless Podman config + optional hardened Docker
-  45-agent-sandbox  # rootless Podman + agent system user (no sudo)
+  42-docker       # rootless Podman
   50-shell
   60-langs
-  70-claude-code  # builds agent container image; no host claude binary
-  90-backups
 )
 
 if [[ $# -gt 0 ]]; then
@@ -57,7 +49,7 @@ for role in "${ROLES[@]}"; do
   if [[ "$role" == "30-tailscale" ]]; then
     # Pass TS_AUTHKEY only to this role's child bash; scrub from parent
     # immediately after so any later role (or a re-ordered subset run
-    # like `bootstrap.sh 70-claude-code 30-tailscale`) cannot inherit it.
+    # like `bootstrap.sh 60-langs 30-tailscale`) cannot inherit it.
     TS_AUTHKEY="$TS_AUTHKEY" bash "$SCRIPT_DIR/roles/${role}.sh"
     unset TS_AUTHKEY
   else
