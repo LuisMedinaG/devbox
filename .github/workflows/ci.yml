@@ -6,14 +6,11 @@ on:
   pull_request:
   workflow_dispatch:
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   shellcheck:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run shellcheck
         # --severity=warning skips info-level findings (SC1091 for the
         # $SCRIPT_DIR/lib/common.sh source path that shellcheck can't follow
@@ -29,8 +26,8 @@ jobs:
   terraform-validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v4
       - name: Terraform fmt check
         run: terraform -chdir=terraform fmt -check -diff
       - name: Terraform validate
@@ -42,7 +39,7 @@ jobs:
   acai-push:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0   # full history so acai can resolve commit SHAs
       - name: Push specs and ACID refs to acai.sh
