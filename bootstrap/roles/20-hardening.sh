@@ -28,6 +28,11 @@ install -d -m 755 /run/sshd
 sshd -t
 reload_sshd
 
+# Explicitly enable ssh so it starts on boot — some images have it disabled.
+# Ubuntu 24.04 uses socket-based activation by default (ssh.socket), but
+# ensuring ssh.service is enabled provides defense-in-depth.
+enable_service ssh
+
 # fail2ban is independent of UFW — SSH brute-force protection should run even
 # when SKIP_FIREWALL=1 (which is meant to skip ufw, not all defenses).
 # Ubuntu 24.04's fail2ban ships without any jails active by default, so
