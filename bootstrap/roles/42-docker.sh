@@ -12,7 +12,17 @@ fi
 
 # Enable the per-user Podman socket so tooling can talk to it without root.
 # bootstrap.DOCKER.4
-as_user 'systemctl --user enable --now podman.socket'
+# systemctl --user requires a D-Bus session which doesn't exist during bootstrap.
+# Directly create the systemd wants symlink instead — equivalent to `systemctl --user enable`.
+# Linger (set in role 10) ensures the socket auto-starts on boot without a login.
+USER_HOME="$(getent passwd "$USERNAME" | cut -d: -f6)"
+WANTS_DIR="${USER_HOME}/.config/systemd/user/default.target.wants"
+SOCKET_UNIT="/usr/lib/systemd/user/podman.socket"
+install -d -m 755 -o "$USERNAME" -g "$USERNAME" "$WANTS_DIR"
+if [[ -f "$SOCKET_UNIT" ]] && [[ ! -L "${WANTS_DIR}/podman.socket" ]]; then
+  ln -s "$SOCKET_UNIT" "${WANTS_DIR}/podman.socket"
+  chown -h "$USERNAME":"$USERNAME" "${WANTS_DIR}/podman.socket"
+fi
 
 # VS Code Dev Containers looks for DOCKER_HOST or /var/run/docker.sock.
 # Point it at the Podman socket so Dev Containers work without installing Docker.
@@ -22,10 +32,8 @@ USER_HOME="$(getent passwd "$USERNAME" | cut -d: -f6)"
 ensure_line "export DOCKER_HOST=unix://${PODMAN_SOCK_PATH}" "${USER_HOME}/.zshenv.local"
 
 # bootstrap.DOCKER.3
-# Confirm rootless mode works for the user.
-if ! as_user 'podman info --format "{{.Host.Security.Rootless}}"' 2>/dev/null | grep -q true; then
-  warn "Podman rootless check did not return true — verify subuid/subgid entries for $USERNAME."
-fi
+# Rootless check requires a running user session — skip during bootstrap, assert in e2e.bats.
+warn "Podman rootless check skipped during bootstrap (no user session). Verified by e2e.bats after login."
 
 # Ensure subuid/subgid ranges exist (adduser usually sets these; belt-and-suspenders).
 # bootstrap.DOCKER.6
