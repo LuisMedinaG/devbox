@@ -2,6 +2,7 @@
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
+# bootstrap.DEV_TOOLS.1
 apt_update_once
 apt_install \
   build-essential pkg-config \
@@ -22,6 +23,7 @@ apt_install \
 [[ -x /usr/bin/batcat ]] && ln -sf /usr/bin/batcat /usr/local/bin/bat
 
 # eza — not in Ubuntu main repos; official signed deb repo
+# bootstrap.DEV_TOOLS.1
 if ! command -v eza >/dev/null 2>&1; then
   curl -fsSL https://raw.githubusercontent.com/eza-community/eza/main/deb.asc \
     | gpg --dearmor -o /etc/apt/keyrings/gierens.gpg

@@ -1,8 +1,10 @@
+# bootstrap.TERRAFORM.2
 data "hcloud_ssh_key" "selected" {
   for_each = toset(var.ssh_key_names)
   name     = each.value
 }
 
+# bootstrap.TERRAFORM.1 bootstrap.TERRAFORM.3
 resource "hcloud_server" "devbox" {
   name        = var.server_name
   server_type = var.server_type

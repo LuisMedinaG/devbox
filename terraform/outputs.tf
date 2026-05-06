@@ -1,3 +1,4 @@
+# bootstrap.TERRAFORM.4
 output "ipv4" {
   description = "Public IPv4 of the devbox."
   value       = hcloud_server.devbox.ipv4_address

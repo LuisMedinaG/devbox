@@ -2,6 +2,7 @@
 # Installs language runtimes. Every third-party binary is downloaded at a
 # pinned version and verified against a sha256 from config/versions.conf
 # before execution. No curl|sh.
+# bootstrap.LANGS.6 bootstrap.LANGS.7 bootstrap.LANGS.8
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
@@ -11,6 +12,7 @@ VERSIONS_CONF="$SCRIPT_DIR/config/versions.conf"
 source "$VERSIONS_CONF"
 
 # Require explicit sha256 for every tool; die early with a clear message.
+# bootstrap.LANGS.6
 : "${FNM_VERSION:?Set FNM_VERSION in config/versions.conf}"
 : "${FNM_SHA256:?Set FNM_SHA256 in config/versions.conf}"
 
@@ -33,6 +35,7 @@ source "$VERSIONS_CONF"
 apt_update_once
 apt_install curl unzip
 
+# bootstrap.LANGS.8
 case "$(dpkg --print-architecture)" in
   amd64) ARCH=amd64 ;;
   arm64) ARCH=arm64 ;;
@@ -41,6 +44,7 @@ esac
 
 # --- Node via fnm ---
 # fnm-linux.zip is a single binary for all arches; one sha256 covers both.
+# bootstrap.LANGS.1 bootstrap.LANGS.7
 if ! as_user '[[ -x "$HOME/.fnm/fnm" ]]'; then
   log "Installing fnm ${FNM_VERSION} ..."
   FNM_URL="https://github.com/Schniz/fnm/releases/download/v${FNM_VERSION}/fnm-linux.zip"
@@ -60,6 +64,7 @@ as_user '
 '
 
 # --- Python: uv ---
+# bootstrap.LANGS.2 bootstrap.LANGS.7
 if ! as_user 'command -v uv >/dev/null 2>&1'; then
   log "Installing uv ${UV_VERSION} ..."
   UV_SHA256_VAR="UV_SHA256_${ARCH^^}"
@@ -79,6 +84,7 @@ if ! as_user 'command -v uv >/dev/null 2>&1'; then
 fi
 
 # --- Bun ---
+# bootstrap.LANGS.3 bootstrap.LANGS.7
 if ! as_user 'command -v bun >/dev/null 2>&1'; then
   log "Installing bun ${BUN_VERSION} ..."
   BUN_SHA256_VAR="BUN_SHA256_${ARCH^^}"
@@ -97,6 +103,7 @@ if ! as_user 'command -v bun >/dev/null 2>&1'; then
 fi
 
 # --- Rust via rustup-init ---
+# bootstrap.LANGS.4 bootstrap.LANGS.7
 if ! as_user '[[ -d "$HOME/.cargo" ]]'; then
   log "Installing rustup ${RUSTUP_VERSION} ..."
   RUSTUP_SHA256_VAR="RUSTUP_SHA256_${ARCH^^}"
@@ -113,6 +120,7 @@ if ! as_user '[[ -d "$HOME/.cargo" ]]'; then
 fi
 
 # --- Go ---
+# bootstrap.LANGS.5 bootstrap.LANGS.7
 if ! /usr/local/go/bin/go version 2>/dev/null | grep -q "go${GO_VERSION} "; then
   log "Installing Go ${GO_VERSION} ..."
   GO_SHA256_VAR="GO_SHA256_${ARCH^^}"

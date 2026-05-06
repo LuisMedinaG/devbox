@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 # Update pinned tool versions in config/versions.conf.
+# bootstrap.VERSIONS.1 bootstrap.VERSIONS.2 bootstrap.VERSIONS.3
+# bootstrap.VERSIONS.4 bootstrap.VERSIONS.5 bootstrap.VERSIONS.6
 #
 # Usage:
 #   update-versions.sh                # check all tools
@@ -7,6 +9,7 @@
 #   update-versions.sh [--update] go  # restrict to a single tool
 #
 # Set GITHUB_TOKEN to avoid GitHub API rate limits (60 req/hr unauthenticated).
+# bootstrap.VERSIONS.6
 #
 # Adding a new tool:
 #   1. Add its pins to config/versions.conf (NAME_VERSION, NAME_SHA256_*).
@@ -54,6 +57,7 @@ manifest_sha256() { curl -fsSL "$1" | awk -v p="$2" '$0 ~ p {print $1; exit}'; }
 
 # Latest GitHub release tag with optional prefix stripped (e.g. "bun-").
 # Always strips a leading "v" so the result is bare semver.
+# bootstrap.VERSIONS.4
 gh_latest() {
   local repo="$1" prefix="${2:-}"
   curl -fsSL \
@@ -64,6 +68,7 @@ gh_latest() {
 }
 
 # Reject anything that isn't x.y.z (with optional -suffix).
+# bootstrap.VERSIONS.5
 require_semver() {
   [[ "$2" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-].+)?$ ]] \
     || { warn "$1" "unparseable version: '$2'"; return 1; }

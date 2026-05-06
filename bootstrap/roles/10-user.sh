@@ -2,15 +2,17 @@
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
-# --- User ($USERNAME) ---
+# bootstrap.USER.1
 if ! id -u "$USERNAME" >/dev/null 2>&1; then
   adduser --disabled-password --gecos "" "$USERNAME"
 fi
 
+# bootstrap.USER.2
 loginctl enable-linger "$USERNAME"
 
 # Narrow sudo allowlist — no NOPASSWD:ALL.
 # /usr/bin/apt-get update: limited package list refresh only.
+# bootstrap.USER.3
 mkdir -p /etc/sudoers.d
 SUDOERS_TMP=$(mktemp)
 trap 'rm -f "$SUDOERS_TMP"' EXIT
@@ -26,6 +28,7 @@ install -m 440 -o root -g root "$SUDOERS_TMP" /etc/sudoers.d/90-"$USERNAME"
 HOME_DIR="/home/$USERNAME"
 install -d -m 700 -o "$USERNAME" -g "$USERNAME" "$HOME_DIR/.ssh"
 
+# bootstrap.USER.4 bootstrap.USER.4-1
 # Prefer an explicit key file; fall back to the key Hetzner injected for root.
 # Role 20 disables PasswordAuthentication, so no keys = locked out.
 KEYS_SRC="$SCRIPT_DIR/config/ssh-authorized-keys"

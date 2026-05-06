@@ -3,6 +3,7 @@
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
+# bootstrap.TAILSCALE.1
 if ! command -v tailscale >/dev/null 2>&1; then
   apt_update_once
   apt_install curl gpg
@@ -23,6 +24,7 @@ fi
 
 enable_service tailscaled
 
+# bootstrap.TAILSCALE.2 bootstrap.TAILSCALE.3
 if ! tailscale status >/dev/null 2>&1; then
   if [[ -n "$TS_AUTHKEY" ]]; then
     tailscale up --ssh --authkey "$TS_AUTHKEY" \
@@ -30,7 +32,8 @@ if ! tailscale status >/dev/null 2>&1; then
       --advertise-tags=tag:devbox
       # Note: this role runs in a child bash process; clearing TS_AUTHKEY here
       # does not affect the parent. The parent bootstrap.sh unsets it after
-      # this role completes (search "unset TS_AUTHKEY" in bootstrap.sh).Ï
+      # this role completes (search "unset TS_AUTHKEY" in bootstrap.sh).
+      # bootstrap.TAILSCALE.3-1
   else
     warn "Run: sudo tailscale up --ssh --hostname devbox --advertise-tags=tag:devbox"
   fi
@@ -39,6 +42,7 @@ fi
 # Restrict SSH to Tailscale CGNAT range only — public port 22 is closed.
 # Tailscale SSH (--ssh above) remains the sole access path; traditional SSH
 # keys are kept as a fallback reachable only through the Tailscale overlay.
+# bootstrap.TAILSCALE.5
 if [[ "${SKIP_FIREWALL:-0}" == "0" ]] && ufw status 2>/dev/null | grep -q '^Status: active'; then
   if tailscale status >/dev/null 2>&1; then
     ufw delete allow OpenSSH >/dev/null 2>&1 || true
