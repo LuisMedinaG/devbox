@@ -85,5 +85,28 @@ if ! tailscale status >/dev/null 2>&1; then
   NEEDS_TAILSCALE=1
 fi
 
+log ""
+log "=== NEXT STEPS ==="
+log ""
+
+if [[ -n "$NEEDS_REBOOT" ]]; then
+  log "1. REBOOT (kernel updates applied):"
+  log "   reboot"
+  log ""
+fi
+
+if [[ -n "$NEEDS_TAILSCALE" ]]; then
+  log "2. CONNECT TAILSCALE:"
+  log "   sudo tailscale up --ssh --hostname devbox --advertise-tags=tag:devbox"
+  log ""
+fi
+
+if [[ -n "$NEEDS_DOTFILES" ]]; then
+  log "3. DEPLOY DOTFILES — role 70 generated an SSH key and printed it."
+  log "   Add the public key to GitHub ( https://github.com/settings/ssh/new ), then:"
+  log "   sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 70-dotfiles"
+  log ""
+fi
+
 log "Reconnect after reboot: tailscale ssh $USERNAME@devbox"
 log "Or via Tailscale IP:    ssh $USERNAME@<ip-from-tailscale-status>"

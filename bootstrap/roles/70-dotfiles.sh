@@ -1,30 +1,53 @@
 #!/usr/bin/env bash
 # Role 70: Deploy dotfiles via yadm for the interactive user.
 # Runs after all system packages and runtimes are installed (role 60).
-# Requires: yadm (role 40), SSH keys (role 10), git (role 40).
+# Requires: yadm (role 40), git (role 40).
+#
+# If luis has no SSH key, generates one and instructs the user to add the
+# public key to GitHub. No need to scp a private key from your Mac.
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
 HOME_DIR="/home/$USERNAME"
 DOTFILES_REPO="${DOTFILES_REPO:-git@github.com:LuisMedinaG/.dotfiles.git}"
+SSH_KEY="$HOME_DIR/.ssh/id_ed25519"
 
-# Skip if dotfiles already cloned (yadm stores its git dir under .local/share/yadm).
+# Skip if dotfiles already cloned.
 if as_user '[[ -d "$HOME/.local/share/yadm/repo.git" ]]'; then
   log "Dotfiles already cloned — skipping."
   exit 0
 fi
 
-# Clone via yadm. Requires the user's SSH key to be configured for GitHub.
-if as_user "yadm clone ${DOTFILES_REPO}"; then
-  log "Dotfiles cloned successfully."
-else
-  warn "yadm clone failed — luis needs a private SSH key to clone from GitHub."
-  warn "Run on your Mac:  scp ~/.ssh/id_ed25519 $USERNAME@$(hostname -I | awk '{print $1}'):~/.ssh/"
-  warn "Then on this host: sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 70-dotfiles"
+# Generate SSH key for the user if one doesn't exist.
+if [[ ! -f "$SSH_KEY" ]]; then
+  log "Generating SSH key for $USERNAME ..."
+  sudo -u "$USERNAME" -H ssh-keygen -t ed25519 -N "" -f "$SSH_KEY" -C "${USERNAME}@devbox"
+  log ""
+  log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  log "  ADD THIS PUBLIC KEY TO GITHUB:"
+  log ""
+  cat "$SSH_KEY.pub"
+  log ""
+  log "  1. Copy the key above"
+  log "  2. Go to: https://github.com/settings/ssh/new"
+  log "  3. Paste it and save"
+  log "  4. Then re-run: sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 70-dotfiles"
+  log "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  log ""
   exit 0
 fi
 
-# Run dotfiles bootstrap (installs Homebrew packages, configures tools).
+# Try cloning dotfiles via yadm.
+if as_user "yadm clone ${DOTFILES_REPO}"; then
+  log "Dotfiles cloned successfully."
+else
+  warn "yadm clone failed — is the public key added to GitHub?"
+  warn "Check: https://github.com/settings/keys"
+  warn "Then re-run: sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 70-dotfiles"
+  exit 0
+fi
+
+# Run dotfiles bootstrap.
 if as_user 'yadm bootstrap'; then
   log "Dotfiles bootstrap complete."
 else

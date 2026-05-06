@@ -23,9 +23,10 @@ cd ~/projects/devbox/bootstrap
 TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
 # → Follow on-screen NEXT STEPS after completion
 
-# 3. Finish (from your Mac, after bootstrap prompts you)
-scp ~/.ssh/id_ed25519 luis@devbox:~/.ssh/
-# → Re-run dotfiles role on host, then reboot
+# 3. Finish (from your Mac)
+#    Role 70 will print an SSH public key — add it to GitHub:
+#    https://github.com/settings/ssh/new
+#    Then re-run dotfiles role on the host, then reboot
 ```
 
 ---
