@@ -13,3 +13,6 @@ venv/
 
 # Local Claude/OpenCode settings (may contain tokens)
 .claude/settings.local.json
+
+# Local secrets (acai token, etc.)
+.env

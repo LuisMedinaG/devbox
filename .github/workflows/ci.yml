@@ -36,4 +36,19 @@ jobs:
           terraform init -backend=false
           terraform validate
 
+  acai-push:
+    runs-on: ubuntu-latest
+    # Only push when we have a token — skips forks and PRs from external contributors.
+    if: ${{ secrets.ACAI_API_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # full history so acai can resolve commit SHAs
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Push specs and ACID refs to acai.sh
+        run: npx @acai.sh/cli push --all
+        env:
+          ACAI_API_TOKEN: ${{ secrets.ACAI_API_TOKEN }}
 
