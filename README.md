@@ -8,6 +8,28 @@ Personal cloud dev box running Claude Code on Hetzner. Persistent tmux sessions,
 
 ---
 
+## Quickstart (new host)
+
+```bash
+# 1. Provision (from your Mac)
+export HCLOUD_TOKEN=<api-token>
+cd terraform && terraform apply
+
+# 2. Bootstrap (SSH in as root, run once)
+ssh root@<ip-from-output>
+apt-get update -y && apt-get install -y git
+git clone https://github.com/LuisMedinaG/devbox.git ~/projects/devbox
+cd ~/projects/devbox/bootstrap
+TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
+# → Follow on-screen NEXT STEPS after completion
+
+# 3. Finish (from your Mac, after bootstrap prompts you)
+scp ~/.ssh/id_ed25519 luis@devbox:~/.ssh/
+# → Re-run dotfiles role on host, then reboot
+```
+
+---
+
 ## Hetzner setup
 
 Two ways to provision the host — pick one. Both end up with the same machine.
@@ -100,20 +122,12 @@ apt-get update -y && apt-get install -y git
 git clone https://github.com/LuisMedinaG/devbox.git ~/projects/devbox
 cd ~/projects/devbox/bootstrap
 
-# Copy your private SSH key so yadm can clone dotfiles from GitHub
-# (Hetzner --ssh-key injects only the public key for inbound access)
-scp ~/.ssh/id_ed25519 luis@devbox:~/.ssh/
-
-# TS_AUTHKEY is optional — connects Tailscale unattended so you don't need
-# a second SSH login. Get one at:
+# TS_AUTHKEY is optional — connects Tailscale unattended. Get one at:
 # login.tailscale.com/admin/settings/keys → Generate auth key
 TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
-
-# Without it, bootstrap still completes. Connect Tailscale manually after:
-#   sudo tailscale up --ssh
 ```
 
-> **After bootstrap:** if you see `*** System restart required ***`, reboot the machine — kernel security updates were applied and won't take effect until a restart.
+After bootstrap completes, follow the on-screen next-step instructions (copy private key for dotfiles, reboot for kernel updates).
 
 ### Roles
 
