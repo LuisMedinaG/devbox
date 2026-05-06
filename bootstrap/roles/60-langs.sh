@@ -65,6 +65,7 @@ as_user '
 
 # --- Python: uv ---
 # bootstrap.LANGS.2 bootstrap.LANGS.7
+install -d -m 755 -o "$USERNAME" -g "$USERNAME" "/home/$USERNAME/.local/bin"
 if ! as_user 'command -v uv >/dev/null 2>&1'; then
   log "Installing uv ${UV_VERSION} ..."
   UV_SHA256_VAR="UV_SHA256_${ARCH^^}"
