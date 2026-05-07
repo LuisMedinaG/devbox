@@ -92,7 +92,7 @@ hcloud server create \
   --type cx21 \
   --image ubuntu-24.04 \
   --location ash \
-  --ssh-key macbook
+  --ssh-key mac-pub-id_ed
 
 hcloud server list
 ```

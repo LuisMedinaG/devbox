@@ -17,7 +17,7 @@ containers — same experience as GitHub Codespaces, self-hosted.
 - VS Code CLI — install once on the host:
 
   ```bash
-  curl -Lk 'https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64' \
+  curl -fL 'https://code.visualstudio.com/sha/download?build=stable&os=cli-alpine-x64' \
     | tar -xz -C ~/.local/bin
   ```
 
