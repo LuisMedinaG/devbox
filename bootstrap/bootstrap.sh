@@ -102,9 +102,12 @@ if [[ -n "$NEEDS_TAILSCALE" ]]; then
 fi
 
 if [[ -n "$NEEDS_DOTFILES" ]]; then
-  log "3. DEPLOY DOTFILES — role 70 generated an SSH key and printed it."
-  log "   Add the public key to GitHub ( https://github.com/settings/ssh/new ), then:"
-  log "   sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 70-dotfiles"
+  log "3. DEPLOY DOTFILES — role 70 printed the SSH public key above."
+  log "   Add it to GitHub ( https://github.com/settings/ssh/new ), then:"
+  log "   sudo bash $SCRIPT_DIR/bootstrap.sh 70-dotfiles"
+  log ""
+  log "   Or skip SSH entirely:"
+  log "   sudo DOTFILES_TOKEN=<github-pat> bash $SCRIPT_DIR/bootstrap.sh 70-dotfiles"
   log ""
 fi
 
