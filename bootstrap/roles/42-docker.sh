@@ -18,7 +18,11 @@ fi
 USER_HOME="$(getent passwd "$USERNAME" | cut -d: -f6)"
 WANTS_DIR="${USER_HOME}/.config/systemd/user/default.target.wants"
 SOCKET_UNIT="/usr/lib/systemd/user/podman.socket"
-install -d -m 755 -o "$USERNAME" -g "$USERNAME" "$WANTS_DIR"
+install -d -m 755 -o "$USERNAME" -g "$USERNAME" \
+  "${USER_HOME}/.config" \
+  "${USER_HOME}/.config/systemd" \
+  "${USER_HOME}/.config/systemd/user" \
+  "${WANTS_DIR}"
 if [[ -f "$SOCKET_UNIT" ]] && [[ ! -L "${WANTS_DIR}/podman.socket" ]]; then
   ln -s "$SOCKET_UNIT" "${WANTS_DIR}/podman.socket"
   chown -h "$USERNAME":"$USERNAME" "${WANTS_DIR}/podman.socket"

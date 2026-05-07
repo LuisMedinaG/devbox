@@ -143,8 +143,8 @@ After bootstrap completes, follow the on-screen next-step instructions (copy pri
 | 42 | docker | rootless Podman; user is NOT in docker group |
 | 50 | shell | set zsh as default; write `~/.zshrc.local` with machine PATH entries |
 | 60 | langs | Node (fnm), Python (uv), Bun, Rust, Go — all sha256-pinned via `config/versions.conf` |
-| 70 | dotfiles | clone and bootstrap dotfiles via yadm (runs as the interactive user) |
 | 80 | claude-code | npm install -g @anthropic-ai/claude-code |
+| 70 | dotfiles | yadm clone + bootstrap (runs as the interactive user, requires GitHub SSH key) |
 
 ### Logs
 
@@ -173,6 +173,9 @@ cat ~/.ssh/id_ed25519.pub >> config/ssh-authorized-keys
 Bootstrap role 70 automatically clones and bootstraps dotfiles via yadm. If it fails (e.g., GitHub SSH not configured yet), run manually as `luis`:
 
 ```bash
+# Set a password for luis — required for sudo (Hetzner provisions no user password)
+passwd luis
+
 su - luis
 
 # Deploy dotfiles (yadm was installed by role 40)

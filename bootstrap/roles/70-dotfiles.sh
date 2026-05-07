@@ -6,7 +6,7 @@
 # Two clone paths — pick whichever fits your workflow:
 #
 #   SSH (default)    Generate a key, add the printed pubkey to GitHub once,
-#                    then re-run: sudo bash $SCRIPT_DIR/bootstrap.sh 70-dotfiles
+#                    then re-run: sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 70-dotfiles
 #
 #   HTTPS (no re-run) Export DOTFILES_TOKEN=<github-pat> before running.
 #                    The PAT needs repo read scope (or "contents: read" for
@@ -17,7 +17,7 @@ source "$SCRIPT_DIR/lib/common.sh"
 HOME_DIR="/home/$USERNAME"
 DOTFILES_REPO="${DOTFILES_REPO:-git@github.com:LuisMedinaG/.dotfiles.git}"
 SSH_KEY="$HOME_DIR/.ssh/id_ed25519"
-RERUN_CMD="sudo bash $SCRIPT_DIR/bootstrap.sh 70-dotfiles"
+RERUN_CMD="sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 70-dotfiles"
 
 # ── Idempotency guard ────────────────────────────────────────────────────────
 if as_user '[[ -d "$HOME/.local/share/yadm/repo.git" ]]'; then
