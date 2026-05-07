@@ -19,12 +19,6 @@ DOTFILES_REPO="${DOTFILES_REPO:-git@github.com:LuisMedinaG/.dotfiles.git}"
 SSH_KEY="$HOME_DIR/.ssh/id_ed25519"
 RERUN_CMD="sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles"
 
-# ── Idempotency guard ────────────────────────────────────────────────────────
-if as_user '[[ -d "$HOME/.local/share/yadm/repo.git" ]]'; then
-  log "Dotfiles already cloned — skipping."
-  exit 0
-fi
-
 # ── Shared helpers ───────────────────────────────────────────────────────────
 
 _clone_dotfiles() {
@@ -41,6 +35,14 @@ _run_yadm_bootstrap() {
     warn "yadm bootstrap had errors — review output above."
   fi
 }
+
+# ── Idempotency guard ────────────────────────────────────────────────────────
+if as_user '[[ -d "$HOME/.local/share/yadm/repo.git" ]]'; then
+  log "Dotfiles already cloned — pulling latest ..."
+  as_user 'yadm pull' || warn "yadm pull failed — check connectivity or conflicts."
+  _run_yadm_bootstrap
+  exit 0
+fi
 
 # ── Path 1: HTTPS clone via Personal Access Token (zero re-run) ─────────────
 if [[ -n "${DOTFILES_TOKEN:-}" ]]; then
