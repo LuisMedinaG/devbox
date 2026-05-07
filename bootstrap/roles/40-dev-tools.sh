@@ -17,8 +17,8 @@ apt_install \
   neovim \
   zoxide \
   yadm \
-  mosh   # the metapackage; pulls mosh-server which UFW exposes on 60000-61000/udp
-  bats   # E2E test runner for post-bootstrap assertions
+  mosh \
+  bats   # E2E test runner for post-bootstrap assertions; mosh pulls mosh-server (UFW: 60000-61000/udp)
 
 [[ -x /usr/bin/fdfind ]] && ln -sf /usr/bin/fdfind /usr/local/bin/fd
 [[ -x /usr/bin/batcat ]] && ln -sf /usr/bin/batcat /usr/local/bin/bat
