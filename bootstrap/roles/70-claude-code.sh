@@ -1,17 +1,29 @@
 #!/usr/bin/env bash
-# Role 80: Install Claude Code globally via npm (Node installed by role 60).
+# Role 70: Install Claude Code and claude-mem MCP server (Node installed by role 60).
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
-if as_user 'command -v claude >/dev/null 2>&1'; then
+if ! as_user 'command -v claude >/dev/null 2>&1'; then
+  log "Installing Claude Code ..."
+  as_user '
+    export PATH="$HOME/.fnm:$PATH"
+    eval "$(fnm env)"
+    npm install -g @anthropic-ai/claude-code
+  '
+  log "Claude Code installed."
+else
   log "Claude Code already installed — skipping."
-  exit 0
 fi
 
-log "Installing Claude Code ..."
-as_user '
-  export PATH="$HOME/.fnm:$PATH"
-  eval "$(fnm env)"
-  npm install -g @anthropic-ai/claude-code
-'
-log "Claude Code installed."
+PLUGIN_CACHE_DIR="/home/$USERNAME/.claude/plugins/cache/thedotmack/claude-mem"
+if [ ! -d "$PLUGIN_CACHE_DIR" ]; then
+  log "Installing claude-mem MCP server ..."
+  as_user '
+    export PATH="$HOME/.fnm:$HOME/.bun/bin:$HOME/.local/bin:$PATH"
+    eval "$(fnm env)"
+    npx --yes claude-mem install
+  '
+  log "claude-mem installed."
+else
+  log "claude-mem already installed — skipping."
+fi
