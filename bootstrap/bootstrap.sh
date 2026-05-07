@@ -39,8 +39,8 @@ ROLES=(
   42-docker       # rootless Podman
   50-shell
   60-langs
-  80-claude-code  # npm install -g @anthropic-ai/claude-code
-  70-dotfiles     # yadm clone + bootstrap (runs as $USERNAME, requires GitHub SSH)
+  70-claude-code  # npm install -g @anthropic-ai/claude-code
+  80-dotfiles     # yadm clone + bootstrap (runs as $USERNAME, requires GitHub SSH)
 )
 
 if [[ $# -gt 0 ]]; then
@@ -101,9 +101,12 @@ if [[ -n "$NEEDS_TAILSCALE" ]]; then
 fi
 
 if [[ -n "$NEEDS_DOTFILES" ]]; then
-  log "3. DEPLOY DOTFILES — role 70 generated an SSH key and printed it."
+  log "3. DEPLOY DOTFILES — role 80 generated an SSH key and printed it."
   log "   Add the public key to GitHub ( https://github.com/settings/ssh/new ), then:"
-  log "   sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 70-dotfiles"
+  log "   sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles"
+  log ""
+  log "   Or skip SSH entirely:"
+  log "   sudo DOTFILES_TOKEN=<github-pat> bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles"
   log ""
 fi
 
