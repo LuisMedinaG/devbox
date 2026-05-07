@@ -6,6 +6,7 @@ source "$SCRIPT_DIR/lib/common.sh"
 if ! as_user 'command -v claude >/dev/null 2>&1'; then
   log "Installing Claude Code ..."
   as_user '
+    cd "$HOME"
     export PATH="$HOME/.fnm:$PATH"
     eval "$(fnm env)"
     npm install -g @anthropic-ai/claude-code
@@ -19,6 +20,7 @@ PLUGIN_CACHE_DIR="/home/$USERNAME/.claude/plugins/cache/thedotmack/claude-mem"
 if [ ! -d "$PLUGIN_CACHE_DIR" ]; then
   log "Installing claude-mem MCP server ..."
   as_user '
+    cd "$HOME"
     export PATH="$HOME/.fnm:$HOME/.bun/bin:$HOME/.local/bin:$PATH"
     eval "$(fnm env)"
     npx --yes claude-mem install
