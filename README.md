@@ -143,8 +143,8 @@ After bootstrap completes, follow the on-screen next-step instructions (copy pri
 | 42 | docker | rootless Podman; user is NOT in docker group |
 | 50 | shell | set zsh as default; write `~/.zshrc.local` with machine PATH entries |
 | 60 | langs | Node (fnm), Python (uv), Bun, Rust, Go — all sha256-pinned via `config/versions.conf` |
-| 70 | dotfiles | clone and bootstrap dotfiles via yadm (runs as the interactive user) |
 | 80 | claude-code | npm install -g @anthropic-ai/claude-code |
+| 70 | dotfiles | yadm clone + bootstrap (runs as the interactive user, requires GitHub SSH key) |
 
 ### Logs
 

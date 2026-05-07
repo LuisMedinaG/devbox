@@ -39,8 +39,8 @@ ROLES=(
   42-docker       # rootless Podman
   50-shell
   60-langs
-  70-dotfiles     # yadm clone + bootstrap (runs as $USERNAME, requires GitHub SSH)
   80-claude-code  # npm install -g @anthropic-ai/claude-code
+  70-dotfiles     # yadm clone + bootstrap (runs as $USERNAME, requires GitHub SSH)
 )
 
 if [[ $# -gt 0 ]]; then
