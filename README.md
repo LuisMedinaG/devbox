@@ -239,7 +239,7 @@ After enrollment, connect with `tailscale ssh devbox`. Role 30 automatically res
 
 ## Claude Code
 
-Installed automatically by role 80-claude-code. Use the built-in sandbox:
+Installed automatically by role 70-claude-code. Use the built-in sandbox:
 
 ```bash
 cd ~/path/to/repo

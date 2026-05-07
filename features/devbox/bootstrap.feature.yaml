@@ -119,7 +119,7 @@ components:
 
   DOTFILES:
     name: Dotfiles Deployment
-    description: Role 70-dotfiles — clones and bootstraps user dotfiles via yadm.
+    description: Role 80-dotfiles — clones and bootstraps user dotfiles via yadm.
     requirements:
       1: Clones the dotfiles git repo via yadm as the interactive user
       2: Runs yadm bootstrap to install user-level tooling (Homebrew packages, configs)
@@ -127,7 +127,7 @@ components:
 
   CLAUDE_CODE:
     name: Claude Code
-    description: Role 80-claude-code — installs Claude Code globally via npm.
+    description: Role 70-claude-code — installs Claude Code globally via npm.
     requirements:
       1: Installs @anthropic-ai/claude-code globally via npm as the interactive user
 
