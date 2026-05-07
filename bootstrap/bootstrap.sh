@@ -75,7 +75,6 @@ if [[ -f /var/run/reboot-required ]]; then
 fi
 
 # Check if dotfiles were cloned. If not, instruct to scp the private key and re-run.
-HOME_DIR="/home/$USERNAME"
 if ! as_user '[[ -d "$HOME/.local/share/yadm/repo.git" ]]' 2>/dev/null; then
   NEEDS_DOTFILES=1
 fi
@@ -108,5 +107,8 @@ if [[ -n "$NEEDS_DOTFILES" ]]; then
   log ""
 fi
 
+log "SET A PASSWORD for $USERNAME (required for sudo):"
+log "   passwd $USERNAME"
+log ""
 log "Reconnect after reboot: tailscale ssh $USERNAME@devbox"
 log "Or via Tailscale IP:    ssh $USERNAME@<ip-from-tailscale-status>"

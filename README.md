@@ -173,6 +173,9 @@ cat ~/.ssh/id_ed25519.pub >> config/ssh-authorized-keys
 Bootstrap role 70 automatically clones and bootstraps dotfiles via yadm. If it fails (e.g., GitHub SSH not configured yet), run manually as `luis`:
 
 ```bash
+# Set a password for luis — required for sudo (Hetzner provisions no user password)
+passwd luis
+
 su - luis
 
 # Deploy dotfiles (yadm was installed by role 40)
