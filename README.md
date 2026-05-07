@@ -24,7 +24,7 @@ TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
 # → Follow on-screen NEXT STEPS after completion
 
 # 3. Finish (from your Mac)
-#    Role 70 will print an SSH public key — add it to GitHub:
+#    Role 80 will print an SSH public key — add it to GitHub:
 #    https://github.com/settings/ssh/new
 #    Then re-run dotfiles role on the host, then reboot
 ```
@@ -170,7 +170,7 @@ cat ~/.ssh/id_ed25519.pub >> config/ssh-authorized-keys
 
 ### After bootstrap — deploy dotfiles
 
-Bootstrap role 70 automatically clones and bootstraps dotfiles via yadm. If it fails (e.g., GitHub SSH not configured yet), run manually as `luis`:
+Bootstrap role 80 automatically clones and bootstraps dotfiles via yadm. If it fails (e.g., GitHub SSH not configured yet), run manually as `luis`:
 
 ```bash
 # Set a password for luis — required for sudo (Hetzner provisions no user password)
