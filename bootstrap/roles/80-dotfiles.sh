@@ -25,7 +25,7 @@ _clone_dotfiles() {
   # Call yadm directly (no bash -lc) to avoid shell-injection via DOTFILES_REPO.
   # --no-bootstrap: we run bootstrap explicitly below; avoid an interactive
   # prompt or a double-run if yadm.bootstrap-after-clone is set in the repo.
-  sudo -u "$USERNAME" -H yadm clone --no-bootstrap -- "$1"
+  sudo -u "$USERNAME" -H env GIT_TERMINAL_PROMPT=0 yadm clone --no-bootstrap -- "$1"
 }
 
 _run_yadm_bootstrap() {
