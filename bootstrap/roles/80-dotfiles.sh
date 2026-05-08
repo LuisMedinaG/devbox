@@ -29,6 +29,9 @@ _clone_dotfiles() {
 }
 
 _run_yadm_bootstrap() {
+  # yadm refuses to run the bootstrap script unless it's executable.
+  # The dotfiles repo may track it without the +x bit, so ensure it here.
+  as_user '[[ -f "$HOME/.config/yadm/bootstrap" ]] && chmod +x "$HOME/.config/yadm/bootstrap"' || true
   if as_user 'yadm bootstrap'; then
     log "Dotfiles bootstrap complete."
   else
