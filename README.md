@@ -135,8 +135,9 @@ Idempotent, safe to re-run. Each role lives in `bootstrap/roles/`:
 | 20 | hardening    | sshd hardening, fail2ban (sshd jail) |
 | 30 | tailscale    | install + connect tailscale-ssh; clears `TS_AUTHKEY` after use |
 | 31 | firewall     | ufw + port 22 restricted to Tailscale CGNAT (after role 30) |
-| 40 | dev-tools    | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, mosh, yadm |
-| 42 | docker       | rootless Podman (user is **not** in docker group) |
+| 40 | dev-tools    | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, mosh, yadm, pipx |
+| 42 | docker       | rootless Podman + `podman-compose` + `docker-compose` shim (user is **not** in docker group) |
+| 43 | caddy        | Caddy reverse proxy — auto-HTTPS, `/health` endpoint, `conf.d/` for service snippets |
 | 50 | shell        | zsh as default; `~/.zshrc.local` with machine PATH entries |
 | 60 | langs        | Node, Python, Bun, Rust, Go via mise — single sha256-pinned binary |
 | 70 | claude-code  | `npm install -g @anthropic-ai/claude-code` |
