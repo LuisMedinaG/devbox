@@ -2,7 +2,7 @@
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
-HOME_DIR="/home/$USERNAME"
+HOME_DIR="$USER_HOME"
 
 # bootstrap.SHELL.1
 ZSH_BIN="$(command -v zsh)"

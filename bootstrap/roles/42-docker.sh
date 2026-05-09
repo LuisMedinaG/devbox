@@ -15,10 +15,9 @@ fi
 # systemctl --user requires a D-Bus session which doesn't exist during bootstrap.
 # Directly create the systemd wants symlink instead — equivalent to `systemctl --user enable`.
 # Linger (set in role 10) ensures the socket auto-starts on boot without a login.
-USER_HOME="$(getent passwd "$USERNAME" | cut -d: -f6)"
 WANTS_DIR="${USER_HOME}/.config/systemd/user/default.target.wants"
 SOCKET_UNIT="/usr/lib/systemd/user/podman.socket"
-install -d -m 755 -o "$USERNAME" -g "$USERNAME" \
+make_user_dir \
   "${USER_HOME}/.config" \
   "${USER_HOME}/.config/systemd" \
   "${USER_HOME}/.config/systemd/user" \

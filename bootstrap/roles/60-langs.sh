@@ -57,8 +57,8 @@ if ! as_user '[[ -x "$HOME/.fnm/fnm" ]]'; then
   TMP_DIR=$(mktemp -d)
   CLEANUP_DIRS+=("$TMP_DIR")
   unzip -q "$TMP_ZIP" -d "$TMP_DIR"
-  install -d -m 755 -o "$USERNAME" -g "$USERNAME" "/home/$USERNAME/.fnm"
-  install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/fnm" "/home/$USERNAME/.fnm/fnm"
+  make_user_dir "$USER_HOME/.fnm"
+  install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/fnm" "$USER_HOME/.fnm/fnm"
   rm -rf "$TMP_ZIP" "$TMP_DIR"
   as_user '
     export PATH="$HOME/.fnm:$PATH"
@@ -70,7 +70,7 @@ fi
 
 # --- Python: uv ---
 # bootstrap.LANGS.2 bootstrap.LANGS.7
-install -d -m 755 -o "$USERNAME" -g "$USERNAME" "/home/$USERNAME/.local/bin"
+make_user_dir "$USER_HOME/.local/bin"
 if ! as_user 'command -v uv >/dev/null 2>&1'; then
   log "Installing uv ${UV_VERSION} ..."
   UV_SHA256_VAR="UV_SHA256_${ARCH^^}"
@@ -86,8 +86,8 @@ if ! as_user 'command -v uv >/dev/null 2>&1'; then
   TMP_DIR=$(mktemp -d)
   CLEANUP_DIRS+=("$TMP_DIR")
   tar -xzf "$TMP_TGZ" -C "$TMP_DIR" --strip-components=1
-  install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/uv" "/home/$USERNAME/.local/bin/uv"
-  install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/uvx" "/home/$USERNAME/.local/bin/uvx"
+  install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/uv" "$USER_HOME/.local/bin/uv"
+  install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/uvx" "$USER_HOME/.local/bin/uvx"
   rm -rf "$TMP_TGZ" "$TMP_DIR"
 fi
 
@@ -107,8 +107,8 @@ if ! as_user 'command -v bun >/dev/null 2>&1'; then
   TMP_DIR=$(mktemp -d)
   CLEANUP_DIRS+=("$TMP_DIR")
   unzip -q "$TMP_ZIP" -d "$TMP_DIR"
-  install -d -m 755 -o "$USERNAME" -g "$USERNAME" "/home/$USERNAME/.bun/bin"
-  install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/${BUN_TAG}/bun" "/home/$USERNAME/.bun/bin/bun"
+  make_user_dir "$USER_HOME/.bun/bin"
+  install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/${BUN_TAG}/bun" "$USER_HOME/.bun/bin/bun"
   rm -rf "$TMP_ZIP" "$TMP_DIR"
 fi
 
@@ -128,7 +128,7 @@ if ! as_user '[[ -d "$HOME/.cargo" ]]'; then
   # rustup-init reads its own argv[0] path to detect proxy mode. Running from
   # /tmp/tmp.* causes spurious "unknown proxy name: 'tmp'" errors. Install to a
   # normal path first.
-  RUSTUP_INIT_BIN="/home/$USERNAME/.local/bin/rustup-init"
+  RUSTUP_INIT_BIN="$USER_HOME/.local/bin/rustup-init"
   install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_INIT" "$RUSTUP_INIT_BIN"
   as_user "$RUSTUP_INIT_BIN -y --no-modify-path"
   rm -f "$TMP_INIT" "$RUSTUP_INIT_BIN"

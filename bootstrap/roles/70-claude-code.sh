@@ -16,7 +16,7 @@ else
   log "Claude Code already installed — skipping."
 fi
 
-PLUGIN_CACHE_DIR="/home/$USERNAME/.claude/plugins/cache/thedotmack/claude-mem"
+PLUGIN_CACHE_DIR="$USER_HOME/.claude/plugins/cache/thedotmack/claude-mem"
 if [ ! -d "$PLUGIN_CACHE_DIR" ]; then
   log "Installing claude-mem MCP server ..."
   as_user '

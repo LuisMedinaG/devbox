@@ -14,7 +14,7 @@
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
-HOME_DIR="/home/$USERNAME"
+HOME_DIR="$USER_HOME"
 DOTFILES_REPO="${DOTFILES_REPO:-git@github.com:LuisMedinaG/.dotfiles.git}"
 SSH_KEY="$HOME_DIR/.ssh/id_ed25519"
 RERUN_CMD="sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles"

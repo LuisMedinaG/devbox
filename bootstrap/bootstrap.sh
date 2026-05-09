@@ -11,7 +11,8 @@ set -euo pipefail
 # TS_AUTHKEY is intentionally excluded from this export list — it's passed
 # inline only to role 30-tailscale below to keep the secret out of the env
 # of every other role's child bash process.
-export USERNAME TIMEZONE SKIP_FIREWALL
+USER_HOME="/home/$USERNAME"
+export USERNAME TIMEZONE SKIP_FIREWALL USER_HOME
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export SCRIPT_DIR

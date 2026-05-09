@@ -25,7 +25,7 @@ visudo -cf "$SUDOERS_TMP" >/dev/null
 install -m 440 -o root -g root "$SUDOERS_TMP" /etc/sudoers.d/90-"$USERNAME"
 
 # --- SSH keys for $USERNAME ---
-HOME_DIR="/home/$USERNAME"
+HOME_DIR="$USER_HOME"
 install -d -m 700 -o "$USERNAME" -g "$USERNAME" "$HOME_DIR/.ssh"
 
 # bootstrap.USER.4 bootstrap.USER.4-1

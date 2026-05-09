@@ -44,6 +44,10 @@ as_user() {
   sudo -u "$USERNAME" -H bash -lc "$*"
 }
 
+make_user_dir() {
+  install -d -m 755 -o "$USERNAME" -g "$USERNAME" "$@"
+}
+
 enable_service() {
   systemctl enable --now "$1"
 }
