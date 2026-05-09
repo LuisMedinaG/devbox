@@ -10,6 +10,22 @@ if ! command -v podman >/dev/null 2>&1; then
   apt_install podman slirp4netns fuse-overlayfs uidmap
 fi
 
+# podman-compose for compose-based Dev Containers.
+# VS Code Dev Containers calls `docker-compose` by name; the shim below
+# forwards those calls to podman-compose so the DOCKER_HOST socket is used.
+# bootstrap.DOCKER.7
+if ! command -v podman-compose >/dev/null 2>&1; then
+  apt_update_once
+  apt_install podman-compose
+fi
+if [[ ! -f /usr/local/bin/docker-compose ]]; then
+  cat > /usr/local/bin/docker-compose <<'EOF'
+#!/bin/sh
+exec podman-compose "$@"
+EOF
+  chmod +x /usr/local/bin/docker-compose
+fi
+
 # Enable the per-user Podman socket so tooling can talk to it without root.
 # bootstrap.DOCKER.4
 # systemctl --user requires a D-Bus session which doesn't exist during bootstrap.

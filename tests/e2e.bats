@@ -8,7 +8,7 @@
 # bootstrap.HARDENING.1 bootstrap.HARDENING.2 bootstrap.HARDENING.3
 # bootstrap.HARDENING.4 (fail2ban)
 # bootstrap.FIREWALL.1 bootstrap.FIREWALL.2 bootstrap.FIREWALL.3
-# bootstrap.USER.1 bootstrap.USER.3 bootstrap.DOCKER.2 bootstrap.DOCKER.3
+# bootstrap.USER.1 bootstrap.USER.3 bootstrap.DOCKER.2 bootstrap.DOCKER.3 bootstrap.DOCKER.7
 # bootstrap.SYSTEM.3 bootstrap.SYSTEM.5 bootstrap.SYSTEM.2
 # bootstrap.TAILSCALE.1 bootstrap.TAILSCALE.4
 # bootstrap.CADDY.1 bootstrap.CADDY.2 bootstrap.CADDY.3 bootstrap.CADDY.4 bootstrap.CADDY.5
@@ -106,6 +106,19 @@ setup() {
 # ---------------------------------------------------------------------------
 # Podman rootless
 # ---------------------------------------------------------------------------
+
+@test "podman-compose is installed" {
+  # bootstrap.DOCKER.7
+  run command -v podman-compose
+  [ "$status" -eq 0 ]
+}
+
+@test "docker-compose shim forwards to podman-compose" {
+  # bootstrap.DOCKER.7
+  [ -x /usr/local/bin/docker-compose ]
+  run grep -q "podman-compose" /usr/local/bin/docker-compose
+  [ "$status" -eq 0 ]
+}
 
 @test "Podman is installed and rootless is configured for $USERNAME" {
   # `podman info --rootless` requires a user D-Bus session (not available

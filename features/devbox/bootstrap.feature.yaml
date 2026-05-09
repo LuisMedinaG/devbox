@@ -83,6 +83,7 @@ components:
       4: Enables the per-user Podman socket (podman.socket) via systemd --user
       5: Exports DOCKER_HOST pointing at the Podman socket in ~/.zshenv.local so Dev Containers tooling works without Docker
       6: Ensures subuid/subgid ranges are allocated for the user (100000-165535) if not already set
+      7: Installs podman-compose and writes a /usr/local/bin/docker-compose shim so VS Code Dev Containers compose-based workflows resolve the docker-compose command via Podman
 
   SHELL:
     name: Shell Configuration
