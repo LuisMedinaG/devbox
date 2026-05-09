@@ -18,6 +18,8 @@ All roles must be safe to re-run. Use the helpers from `bootstrap/lib/common.sh`
 
 Never use raw `echo >>` or `apt-get install` directly — always go through the helpers.
 
+If a helper fails, log the error and exit with a non-zero status. For example, if `download_verify` fails, the role should report the failure and exit `1` so the bootstrap process stops cleanly.
+
 ## Adding a new third-party binary
 
 1. Add `TOOL_VERSION`, `TOOL_SHA256_AMD64`, `TOOL_SHA256_ARM64` to `bootstrap/config/versions.conf`.
