@@ -57,6 +57,7 @@ tests/e2e.bats       Post-bootstrap assertions — run on the host, not Mac
 | `31-firewall` | UFW — runs after Tailscale; restricts port 22 to CGNAT only when Tailscale is connected |
 | `40-dev-tools` | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, mosh, yadm |
 | `42-docker` | rootless Podman for `luis`; user is NOT in docker group |
+| `43-caddy` | Caddy reverse proxy — installs from official apt repo, base Caddyfile with `/health` endpoint, `conf.d/` include pattern for service snippets, opens ports 80 + 443 |
 | `50-shell` | set zsh as default; write `~/.zshrc.local` with machine PATH entries |
 | `60-langs` | Node (fnm), uv, Bun, Rust, Go — all sha256-pinned via `versions.conf` |
 | `70-claude-code` | `npm install -g @anthropic-ai/claude-code` + claude-mem MCP |

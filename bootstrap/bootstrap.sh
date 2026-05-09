@@ -42,6 +42,7 @@ ROLES=(
   31-firewall     # UFW — runs after Tailscale so port 22 is never closed prematurely
   40-dev-tools
   42-docker       # rootless Podman
+  43-caddy        # Caddy reverse proxy — HTTP/HTTPS foundation for services
   50-shell
   60-langs
   70-claude-code  # npm install -g @anthropic-ai/claude-code

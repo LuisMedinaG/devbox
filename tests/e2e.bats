@@ -11,6 +11,7 @@
 # bootstrap.USER.1 bootstrap.USER.3 bootstrap.DOCKER.2 bootstrap.DOCKER.3
 # bootstrap.SYSTEM.3 bootstrap.SYSTEM.5 bootstrap.SYSTEM.2
 # bootstrap.TAILSCALE.1 bootstrap.TAILSCALE.4
+# bootstrap.CADDY.1 bootstrap.CADDY.2 bootstrap.CADDY.3 bootstrap.CADDY.4 bootstrap.CADDY.5
 
 setup() {
   USERNAME="${USERNAME:-luis}"
@@ -148,6 +149,53 @@ setup() {
 @test "tailscaled service is enabled" {
   run systemctl is-enabled tailscaled
   [ "$status" -eq 0 ]
+}
+
+# ---------------------------------------------------------------------------
+# Caddy reverse proxy
+# ---------------------------------------------------------------------------
+
+@test "caddy is installed" {
+  # bootstrap.CADDY.1
+  run command -v caddy
+  [ "$status" -eq 0 ]
+}
+
+@test "caddy service is active" {
+  # bootstrap.CADDY.5
+  run systemctl is-active caddy
+  [ "$status" -eq 0 ]
+  [ "$output" = "active" ]
+}
+
+@test "caddy Caddyfile has bootstrap sentinel" {
+  # bootstrap.CADDY.2
+  run grep -q "bootstrap.CADDY" /etc/caddy/Caddyfile
+  [ "$status" -eq 0 ]
+}
+
+@test "caddy conf.d directory exists" {
+  # bootstrap.CADDY.3
+  [ -d /etc/caddy/conf.d ]
+}
+
+@test "caddy health endpoint responds 200" {
+  # bootstrap.CADDY.2
+  run curl -sf -o /dev/null -w "%{http_code}" http://localhost/health
+  [ "$status" -eq 0 ]
+  [ "$output" = "200" ]
+}
+
+@test "ufw allows HTTP port 80" {
+  # bootstrap.CADDY.4
+  run ufw status
+  echo "$output" | grep -qE "^80/tcp.*ALLOW"
+}
+
+@test "ufw allows HTTPS port 443" {
+  # bootstrap.CADDY.4
+  run ufw status
+  echo "$output" | grep -qE "^443/tcp.*ALLOW"
 }
 
 # ---------------------------------------------------------------------------

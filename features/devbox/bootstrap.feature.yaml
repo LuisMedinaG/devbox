@@ -62,6 +62,17 @@ components:
     requirements:
       1: Installs git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, python3, mosh, yadm
 
+  CADDY:
+    name: Reverse Proxy
+    description: Role 43-caddy — installs Caddy from the official apt repo as a persistent systemd service and establishes the conf.d include pattern for future service roles.
+    requirements:
+      1: Installs Caddy from the official Cloudsmith-hosted apt repository, verified via GPG keyring
+      2: Writes /etc/caddy/Caddyfile with a health endpoint (GET /health → 200 OK) and an import directive for /etc/caddy/conf.d/*.conf
+      2-note: Caddyfile is written only once; the sentinel comment "# bootstrap.CADDY" guards against overwriting on re-runs
+      3: Creates /etc/caddy/conf.d/ for service-specific Caddy snippets; future service roles drop files here without modifying the base Caddyfile
+      4: Opens TCP ports 80 and 443 in UFW when UFW is active
+      5: Enables and starts the caddy systemd service; reloads config if caddy was already running when the Caddyfile changed
+
   DOCKER:
     name: Container Runtime
     description: Role 42-docker — rootless Podman for the interactive user.
