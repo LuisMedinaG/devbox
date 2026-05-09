@@ -1,0 +1,26 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport sys, json\ntry:\n    req = json.load(sys.stdin)\nexcept Exception:\n    sys.exit(0)\npath = req.get('tool_input', {}).get('file_path', '')\nblocked = [\n    'terraform/terraform.tfvars',\n    'terraform/.terraform/',\n]\nfor b in blocked:\n    if b in path:\n        print(f'Blocked: direct edits to {b} are not allowed.', file=sys.stderr)\n        sys.exit(1)\n\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"\nimport sys, json, subprocess\ntry:\n    req = json.load(sys.stdin)\nexcept Exception:\n    sys.exit(0)\npath = req.get('tool_input', {}).get('file_path', '')\nif path.endswith('.sh'):\n    result = subprocess.run(['shellcheck', '-S', 'warning', path], capture_output=True, text=True)\n    if result.returncode != 0:\n        print(result.stdout, end='')\n        print(result.stderr, end='', file=sys.stderr)\n        sys.exit(result.returncode)\n\""
+          }
+        ]
+      }
+    ]
+  }
+}
