@@ -27,14 +27,16 @@ git clone https://github.com/LuisMedinaG/devbox.git ~/projects/devbox
 # 3. Bootstrap
 cd ~/projects/devbox/bootstrap
 
-# Path A — single pass (recommended): pass a GitHub PAT for dotfiles HTTPS clone
-TS_AUTHKEY=tskey-auth-xxxx \
+# Path A — single pass (recommended): HTTPS dotfiles clone via GitHub PAT
+USERNAME=luis \
+  TS_AUTHKEY=tskey-auth-xxxx \
+  DOTFILES_REPO=git@github.com:LuisMedinaG/.dotfiles.git \
   DOTFILES_TOKEN=ghp_xxxxxxxxxxxx \
   bash bootstrap.sh
 
 # Path B — SSH dotfiles: bootstrap prints an SSH key, add it to GitHub, re-run
-TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
-# → follow on-screen NEXT STEPS (add key, then `bash bootstrap.sh 80-dotfiles`)
+USERNAME=luis TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
+# → follow on-screen NEXT STEPS (add key, then re-run with DOTFILES_REPO set)
 ```
 
 If you passed `USER_PASSWORD=`, the password is already set. Otherwise run
@@ -281,7 +283,7 @@ Or enable permanently in `.claude/settings.json`:
 
 | Variable          | Default                | Description |
 |-------------------|------------------------|-------------|
-| `USERNAME`        | _(auto from `$SUDO_USER`)_ | User to create — set explicitly or detected from invoking user |
+| `USERNAME`        | _(required)_               | User to create — explicit or auto-detected from `$SUDO_USER` |
 | `DOTFILES_REPO`   | _(empty — skip)_       | yadm dotfiles repo URL; role 80 is skipped if unset |
 | `TIMEZONE`        | `America/Mexico_City`  | Host timezone |
 | `SKIP_FIREWALL`   | `0`                    | `1` skips ufw + fail2ban; **sshd hardening still runs** |
