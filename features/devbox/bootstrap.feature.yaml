@@ -60,7 +60,7 @@ components:
     name: Developer Tools
     description: Role 40-dev-tools — installs the core CLI toolchain.
     requirements:
-      1: Installs git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, python3, mosh, yadm
+      1: Installs git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, python3, mosh, yadm, pipx
 
   CADDY:
     name: Reverse Proxy

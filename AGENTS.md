@@ -55,7 +55,7 @@ tests/e2e.bats       Post-bootstrap assertions — run on the host, not Mac
 | `20-hardening` | harden sshd, fail2ban — **no UFW**, public SSH stays open for recovery |
 | `30-tailscale` | install + `tailscale up --ssh` |
 | `31-firewall` | UFW — runs after Tailscale; restricts port 22 to CGNAT only when Tailscale is connected |
-| `40-dev-tools` | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, mosh, yadm |
+| `40-dev-tools` | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, mosh, yadm, pipx |
 | `42-docker` | rootless Podman for `luis`; user is NOT in docker group; `podman-compose` + `docker-compose` shim for compose-based Dev Containers |
 | `43-caddy` | Caddy reverse proxy — installs from official apt repo, base Caddyfile with `/health` endpoint, `conf.d/` include pattern for service snippets, opens ports 80 + 443 |
 | `50-shell` | set zsh as default; write `~/.zshrc.local` with machine PATH entries |
