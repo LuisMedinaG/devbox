@@ -12,6 +12,7 @@
 # bootstrap.SYSTEM.3 bootstrap.SYSTEM.5 bootstrap.SYSTEM.2
 # bootstrap.TAILSCALE.1 bootstrap.TAILSCALE.4
 # bootstrap.CADDY.1 bootstrap.CADDY.2 bootstrap.CADDY.3 bootstrap.CADDY.4 bootstrap.CADDY.5
+# bootstrap.OLLAMA.1 bootstrap.OLLAMA.2 bootstrap.OLLAMA.3 bootstrap.OLLAMA.4
 
 setup() {
   USERNAME="${USERNAME:-luis}"
@@ -196,6 +197,66 @@ setup() {
   # bootstrap.CADDY.4
   run ufw status
   echo "$output" | grep -qE "^443/tcp.*ALLOW"
+}
+
+# ---------------------------------------------------------------------------
+# Ollama (opt-in — tests skip when not installed)
+# ---------------------------------------------------------------------------
+
+@test "ollama binary is present" {
+  # bootstrap.OLLAMA.1
+  if ! command -v ollama >/dev/null 2>&1; then
+    skip "ollama not installed (opt-in: bootstrap.sh svc-ollama)"
+  fi
+  run command -v ollama
+  [ "$status" -eq 0 ]
+}
+
+@test "ollama service is active" {
+  # bootstrap.OLLAMA.3
+  if ! command -v ollama >/dev/null 2>&1; then
+    skip "ollama not installed (opt-in: bootstrap.sh svc-ollama)"
+  fi
+  run systemctl is-active ollama
+  [ "$status" -eq 0 ]
+  [ "$output" = "active" ]
+}
+
+@test "ollama service user exists" {
+  # bootstrap.OLLAMA.2
+  if ! command -v ollama >/dev/null 2>&1; then
+    skip "ollama not installed (opt-in: bootstrap.sh svc-ollama)"
+  fi
+  run id ollama
+  [ "$status" -eq 0 ]
+}
+
+@test "ollama model storage directory exists and is owned by ollama" {
+  # bootstrap.OLLAMA.2
+  if ! command -v ollama >/dev/null 2>&1; then
+    skip "ollama not installed (opt-in: bootstrap.sh svc-ollama)"
+  fi
+  [ -d /var/lib/ollama/models ]
+  run stat -c "%U" /var/lib/ollama/models
+  [ "$output" = "ollama" ]
+}
+
+@test "ollama responds on port 11434" {
+  # bootstrap.OLLAMA.3
+  if ! command -v ollama >/dev/null 2>&1; then
+    skip "ollama not installed (opt-in: bootstrap.sh svc-ollama)"
+  fi
+  run curl -sf -o /dev/null -w "%{http_code}" http://localhost:11434/api/version
+  [ "$status" -eq 0 ]
+  [ "$output" = "200" ]
+}
+
+@test "ollama caddy snippet exists" {
+  # bootstrap.OLLAMA.4
+  if ! command -v ollama >/dev/null 2>&1; then
+    skip "ollama not installed (opt-in: bootstrap.sh svc-ollama)"
+  fi
+  [ -f /etc/caddy/conf.d/ollama.conf ]
 }
 
 # ---------------------------------------------------------------------------

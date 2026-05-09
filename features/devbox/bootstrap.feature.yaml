@@ -145,6 +145,16 @@ components:
     requirements:
       1: Installs @anthropic-ai/claude-code globally via npm as the interactive user
 
+  OLLAMA:
+    name: Local LLM Server
+    description: Role svc-ollama — opt-in service role that installs Ollama for local LLM inference. Not in the default role sequence; run with bootstrap.sh svc-ollama.
+    requirements:
+      1: Downloads the official Ollama release archive (tar.zst), verifies sha256 before extracting, installs binary to /usr/local/bin/ollama
+      2: Creates a dedicated ollama system account (no login shell) and stores models in /var/lib/ollama/models
+      3: Writes a systemd service unit that runs ollama serve as the ollama user with OLLAMA_HOST=0.0.0.0:11434; enables and starts it
+      3-note: Port 11434 is not opened in UFW — Tailscale mesh provides access without public exposure
+      4: Drops a commented-out Caddy snippet at /etc/caddy/conf.d/ollama.conf as a reference for adding HTTPS via a domain later
+
 constraints:
   ENG:
     name: Engineering Constraints

@@ -63,6 +63,30 @@ tests/e2e.bats       Post-bootstrap assertions — run on the host, not Mac
 | `70-claude-code` | `npm install -g @anthropic-ai/claude-code` + claude-mem MCP |
 | `80-dotfiles` | yadm clone + bootstrap as `luis` |
 
+### Optional service roles (`svc-*`)
+
+Service roles are opt-in and not in the default sequence. Run one standalone with:
+
+```bash
+sudo USERNAME=luis ./bootstrap/bootstrap.sh svc-ollama
+```
+
+| Role | What it does |
+|---|---|
+| `svc-ollama` | Ollama local LLM server — sha256-pinned binary, dedicated system user, systemd service on `0.0.0.0:11434`, Caddy snippet template at `conf.d/ollama.conf` |
+
+**Convention for new service roles:**
+
+1. Name the file `roles/svc-<name>.sh`.
+2. Install the service binary or compose setup via `download_verify` or an official signed apt repo — never `curl | sh`.
+3. Create a dedicated system user (`useradd -r`) if the upstream service recommends one.
+4. Write a systemd unit to `/etc/systemd/system/<name>.service` and enable with `enable_service`.
+5. Store persistent data under `/var/lib/<name>/` owned by the service user.
+6. Drop a Caddy snippet at `/etc/caddy/conf.d/<name>.conf` — active or commented-out template.
+7. Guard all steps with idempotency checks (`command -v`, `id`, `[[ ! -f ]]`).
+8. Add version + sha256 to `config/versions.conf` for any downloaded binary.
+9. Add ACID-referenced assertions to `tests/e2e.bats` with a `skip` guard when the service is not installed.
+
 ## Constraints
 
 - **All roles are idempotent** — safe to re-run. Use `ensure_line`, `ensure_kv`, and `command -v` guards, never raw appends.
