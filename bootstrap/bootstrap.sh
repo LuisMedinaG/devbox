@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # Run as root on a fresh Ubuntu 24.04 host.
-#   sudo USERNAME=luis ./bootstrap.sh
-#   sudo USERNAME=luis ./bootstrap.sh 40-dev-tools 60-langs   # subset
+#   sudo ./bootstrap.sh                                  # USERNAME auto-detected from $SUDO_USER
+#   sudo USERNAME=alice ./bootstrap.sh 40-dev-tools     # explicit override
 set -euo pipefail
 
-: "${USERNAME:=luis}"
+# Auto-detect from SUDO_USER when invoked via sudo; require explicit set otherwise.
+: "${USERNAME:=${SUDO_USER:-}}"
+[[ -n "$USERNAME" ]] || die "USERNAME is not set. Run as: sudo USERNAME=<user> ./bootstrap.sh"
 : "${TIMEZONE:=America/Mexico_City}"
 : "${TS_AUTHKEY:=}"               # optional, prefills tailscale auth — NOT exported globally
 : "${SKIP_FIREWALL:=${SKIP_UFW:-0}}"  # set to 1 to skip ufw only; fail2ban + sshd hardening still run

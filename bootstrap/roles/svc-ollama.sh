@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Installs Ollama (local LLM server). Opt-in — not in the default role sequence.
-# Run standalone: sudo USERNAME=luis ./bootstrap.sh svc-ollama
+# Run standalone: sudo ./bootstrap.sh svc-ollama  (USERNAME auto-detected from $SUDO_USER)
 # Access via Tailscale: http://<tailscale-ip>:11434 (not exposed to public internet)
 # bootstrap.OLLAMA.1 bootstrap.OLLAMA.2 bootstrap.OLLAMA.3 bootstrap.OLLAMA.4
 set -euo pipefail

@@ -15,8 +15,15 @@ set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
 HOME_DIR="$USER_HOME"
-DOTFILES_REPO="${DOTFILES_REPO:-git@github.com:LuisMedinaG/.dotfiles.git}"
 SSH_KEY="$HOME_DIR/.ssh/id_ed25519"
+
+if [[ -z "${DOTFILES_REPO:-}" ]]; then
+  warn "DOTFILES_REPO not set — skipping dotfiles clone."
+  warn "To deploy dotfiles, re-run with:"
+  warn "  sudo DOTFILES_REPO=git@github.com:<owner>/.dotfiles.git \\"
+  warn "       ./bootstrap.sh 80-dotfiles"
+  exit 0
+fi
 RERUN_CMD="sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles"
 
 # ── Shared helpers ───────────────────────────────────────────────────────────

@@ -6,10 +6,12 @@ Personal cloud dev box on Hetzner (Ubuntu 24.04). Bootstrap scripts provision a 
 
 ```bash
 # Run full bootstrap (on the server, as root)
-sudo USERNAME=luis ./bootstrap/bootstrap.sh
+# USERNAME is auto-detected from $SUDO_USER; override explicitly if needed
+sudo ./bootstrap/bootstrap.sh
+sudo USERNAME=alice ./bootstrap/bootstrap.sh   # explicit override
 
 # Run a single role
-sudo USERNAME=luis ./bootstrap/bootstrap.sh 40-dev-tools
+sudo ./bootstrap/bootstrap.sh 40-dev-tools
 
 # Run post-bootstrap assertions (on the server)
 bats tests/e2e.bats
@@ -42,7 +44,7 @@ tests/e2e.bats       Post-bootstrap assertions — run on the host, not Mac
 |---|---|
 | `terraform/` | Hetzner server resource — no OS config here |
 | `bootstrap/` | apt packages, users, SSH/firewall/network, runtimes, services |
-| dotfiles (`LuisMedinaG/.dotfiles` via yadm) | `.zshrc`, `.zshenv`, `.gitconfig`, nvim, tmux config |
+| dotfiles (your repo via yadm, set `DOTFILES_REPO`) | `.zshrc`, `.zshenv`, `.gitconfig`, nvim, tmux config |
 
 **Bootstrap must never write to files dotfiles owns.** Machine-specific shell entries go in `~/.zshrc.local` or `~/.zshenv.local` (not tracked by yadm).
 
@@ -51,24 +53,24 @@ tests/e2e.bats       Post-bootstrap assertions — run on the host, not Mac
 | Role | What it does |
 |---|---|
 | `00-system` | timezone, 2 GB swap, sysctl, auto-upgrades |
-| `10-user` | create `luis`, narrow sudo allowlist, SSH keys, loginctl linger |
+| `10-user` | create `$USERNAME`, narrow sudo allowlist, SSH keys, loginctl linger |
 | `20-hardening` | harden sshd, fail2ban — **no UFW**, public SSH stays open for recovery |
 | `30-tailscale` | install + `tailscale up --ssh` |
 | `31-firewall` | UFW — runs after Tailscale; restricts port 22 to CGNAT only when Tailscale is connected |
 | `40-dev-tools` | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, mosh, yadm, pipx |
-| `42-docker` | rootless Podman for `luis`; user is NOT in docker group; `podman-compose` + `docker-compose` shim for compose-based Dev Containers |
+| `42-docker` | rootless Podman for `$USERNAME`; user is NOT in docker group; `podman-compose` + `docker-compose` shim for compose-based Dev Containers |
 | `43-caddy` | Caddy reverse proxy — installs from official apt repo, base Caddyfile with `/health` endpoint, `conf.d/` include pattern for service snippets, opens ports 80 + 443 |
 | `50-shell` | set zsh as default; write `~/.zshrc.local` with machine PATH entries |
 | `60-langs` | Node (fnm), uv, Bun, Rust, Go — all sha256-pinned via `versions.conf` |
 | `70-claude-code` | `npm install -g @anthropic-ai/claude-code` + claude-mem MCP |
-| `80-dotfiles` | yadm clone + bootstrap as `luis` |
+| `80-dotfiles` | yadm clone + bootstrap as `$USERNAME`; skipped if `DOTFILES_REPO` is unset |
 
 ### Optional service roles (`svc-*`)
 
 Service roles are opt-in and not in the default sequence. Run one standalone with:
 
 ```bash
-sudo USERNAME=luis ./bootstrap/bootstrap.sh svc-ollama
+sudo ./bootstrap/bootstrap.sh svc-ollama
 ```
 
 | Role | What it does |
@@ -92,7 +94,7 @@ sudo USERNAME=luis ./bootstrap/bootstrap.sh svc-ollama
 - **All roles are idempotent** — safe to re-run. Use `ensure_line`, `ensure_kv`, and `command -v` guards, never raw appends.
 - **UFW ordering** — `31-firewall` must run after `30-tailscale` or port 22 closes before the overlay is up.
 - **No `curl | sh`** — all third-party binaries are verified with `download_verify <url> <dest> <sha256>` before execution. Add new tools to `versions.conf`.
-- **Bootstrap defaults**: `USERNAME=luis`, `TIMEZONE=America/Mexico_City`, `SKIP_FIREWALL=0`.
+- **Bootstrap defaults**: `USERNAME` auto-detected from `$SUDO_USER` (override explicitly if needed), `TIMEZONE=America/Mexico_City`, `SKIP_FIREWALL=0`.
 - **Logs**: `/var/log/bootstrap/bootstrap-YYYYMMDD-HHMMSS.log` — check here first on failure.
 
 ## Editing guidelines

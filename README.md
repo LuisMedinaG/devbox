@@ -38,8 +38,8 @@ TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
 ```
 
 If you passed `USER_PASSWORD=`, the password is already set. Otherwise run
-`passwd luis` before disconnecting. Reboot if a kernel update was applied.
-Reconnect via `tailscale ssh luis@devbox`.
+`passwd $USERNAME` before disconnecting. Reboot if a kernel update was applied.
+Reconnect via `tailscale ssh $USERNAME@devbox`.
 
 ---
 
@@ -129,7 +129,7 @@ Idempotent, safe to re-run. Each role lives in `bootstrap/roles/`:
 | #  | Role         | What it does |
 |----|--------------|--------------|
 | 00 | system       | timezone, 2 GB swap, sysctl, unattended-upgrade, log rotation |
-| 10 | user         | create `luis`, narrow sudo, SSH `authorized_keys` |
+| 10 | user         | create `$USERNAME`, narrow sudo, SSH `authorized_keys` |
 | 20 | hardening    | sshd hardening, fail2ban (sshd jail) |
 | 30 | tailscale    | install + connect tailscale-ssh; clears `TS_AUTHKEY` after use |
 | 31 | firewall     | ufw + port 22 restricted to Tailscale CGNAT (after role 30) |
@@ -148,7 +148,7 @@ tail -f /var/log/bootstrap/bootstrap-$(date +%Y%m%d)*.log
 
 ### SSH keys
 
-Role 10 copies SSH keys to `~luis/.ssh/authorized_keys`, in priority order:
+Role 10 copies SSH keys to `~$USERNAME/.ssh/authorized_keys`, in priority order:
 
 1. `bootstrap/config/ssh-authorized-keys` if present (gitignored)
 2. `/root/.ssh/authorized_keys` — injected by Hetzner with `--ssh-key`
@@ -164,9 +164,10 @@ cat ~/.ssh/id_ed25519.pub >> bootstrap/config/ssh-authorized-keys
 
 ## Dotfiles
 
-Role 80 deploys [LuisMedinaG/.dotfiles](https://github.com/LuisMedinaG/.dotfiles)
-via yadm. Two clone paths — `DOTFILES_TOKEN` (HTTPS) is single-pass; SSH needs
-one re-run.
+Role 80 deploys your dotfiles via yadm. Set `DOTFILES_REPO` to your repo URL
+(SSH or HTTPS). If unset, the role is skipped with a warning.
+
+Two clone paths — `DOTFILES_TOKEN` (HTTPS) is single-pass; SSH needs one re-run.
 
 ### HTTPS (recommended)
 
@@ -175,17 +176,19 @@ written to a temporary `~/.netrc` (mode 600) and removed via `trap` on exit;
 it never touches argv, env (`ps`), git config, or logs.
 
 Create a fine-grained PAT at <https://github.com/settings/tokens?type=beta>:
-- **Repository access**: only `LuisMedinaG/.dotfiles`
+- **Repository access**: your dotfiles repo only
 - **Permissions → Contents**: Read-only
 - **Expiration**: short (you only need it once)
 
 ```bash
-DOTFILES_TOKEN=ghp_xxxxxxxxxxxx bash bootstrap.sh
+DOTFILES_REPO=git@github.com:<owner>/.dotfiles.git \
+  DOTFILES_TOKEN=ghp_xxxxxxxxxxxx \
+  bash bootstrap.sh
 ```
 
 ### SSH (default)
 
-Role 80 generates `~luis/.ssh/id_ed25519` and prints the public key. Add it to
+Role 80 generates `~$USERNAME/.ssh/id_ed25519` and prints the public key. Add it to
 GitHub at <https://github.com/settings/ssh/new>, then re-run:
 
 ```bash
@@ -208,7 +211,7 @@ in seconds instead of hanging.
 
 ## Tailscale
 
-Connect with `tailscale ssh luis@devbox` (no `~/.ssh/config` needed). Role 31
+Connect with `tailscale ssh $USERNAME@devbox` (no `~/.ssh/config` needed). Role 31
 restricts public port 22 to the Tailscale CGNAT range
 (`100.64.0.0/10`) — keys remain reachable only through the overlay.
 
@@ -252,7 +255,7 @@ restricts public port 22 to the Tailscale CGNAT range
 ### Mobile (iOS)
 
 Install **Tailscale** + a mosh-capable client (e.g. **Terminus**), point at the
-devbox Tailscale IP, user `luis`, enable Mosh. Roams cleanly between Wi-Fi and
+devbox Tailscale IP, user `$USERNAME`, enable Mosh. Roams cleanly between Wi-Fi and
 cellular.
 
 ---
@@ -278,7 +281,8 @@ Or enable permanently in `.claude/settings.json`:
 
 | Variable          | Default                | Description |
 |-------------------|------------------------|-------------|
-| `USERNAME`        | `luis`                 | User to create |
+| `USERNAME`        | _(auto from `$SUDO_USER`)_ | User to create — set explicitly or detected from invoking user |
+| `DOTFILES_REPO`   | _(empty — skip)_       | yadm dotfiles repo URL; role 80 is skipped if unset |
 | `TIMEZONE`        | `America/Mexico_City`  | Host timezone |
 | `SKIP_FIREWALL`   | `0`                    | `1` skips ufw + fail2ban; **sshd hardening still runs** |
 | `TS_AUTHKEY`      | _(empty)_              | Tailscale auth key for unattended connect (cleared after use) |
