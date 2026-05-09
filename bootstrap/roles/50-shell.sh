@@ -23,7 +23,5 @@ fi
 # bootstrap.SHELL.3
 ZSHRC_LOCAL="$HOME_DIR/.zshrc.local"
 ensure_line 'export PATH="$HOME/.local/bin:$PATH"' "$ZSHRC_LOCAL"
-ensure_line '[[ -f "$HOME/.fnm/fnm" ]] && eval "$($HOME/.fnm/fnm env --use-on-cd)"' "$ZSHRC_LOCAL"
-ensure_line '[[ -d "$HOME/.cargo/bin" ]] && export PATH="$HOME/.cargo/bin:$PATH"' "$ZSHRC_LOCAL"
-ensure_line '[[ -d "/usr/local/go/bin" ]] && export PATH="/usr/local/go/bin:$PATH"' "$ZSHRC_LOCAL"
+ensure_line 'eval "$(mise activate zsh)"' "$ZSHRC_LOCAL"
 chown "$USERNAME":"$USERNAME" "$ZSHRC_LOCAL"

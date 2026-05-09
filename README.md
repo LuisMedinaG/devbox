@@ -136,7 +136,7 @@ Idempotent, safe to re-run. Each role lives in `bootstrap/roles/`:
 | 40 | dev-tools    | git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, mosh, yadm |
 | 42 | docker       | rootless Podman (user is **not** in docker group) |
 | 50 | shell        | zsh as default; `~/.zshrc.local` with machine PATH entries |
-| 60 | langs        | Node (fnm), Python (uv), Bun, Rust, Go — sha256-pinned |
+| 60 | langs        | Node, Python, Bun, Rust, Go via mise — single sha256-pinned binary |
 | 70 | claude-code  | `npm install -g @anthropic-ai/claude-code` |
 | 80 | dotfiles     | yadm clone + bootstrap, runs as the interactive user |
 
@@ -199,8 +199,8 @@ in seconds instead of hanging.
 ### Notes
 
 - `~/.zshrc.local` (written by role 50, **not** tracked by yadm) holds
-  machine-specific PATH entries for fnm, cargo, and Go. It survives
-  `yadm clone` and is sourced by `.zshrc`.
+  `eval "$(mise activate zsh)"` and any other machine-specific entries. It
+  survives `yadm clone` and is sourced by `.zshrc`.
 - `yadm clone` runs with `--no-bootstrap`; bootstrap is invoked explicitly
   afterward to avoid double-runs in non-TTY contexts.
 
@@ -284,22 +284,6 @@ Or enable permanently in `.claude/settings.json`:
 | `TS_AUTHKEY`      | _(empty)_              | Tailscale auth key for unattended connect (cleared after use) |
 | `DOTFILES_TOKEN`  | _(empty)_              | GitHub PAT for HTTPS dotfiles clone (no SSH key needed) |
 | `USER_PASSWORD`   | _(empty)_              | If set, role 10 runs `chpasswd` — eliminates manual `passwd` step |
-
----
-
-## Updating pinned versions
-
-All third-party binaries (Go, fnm, uv, Bun, Rust) are pinned with version +
-sha256 in `bootstrap/config/versions.conf`. Bootstrap aborts if any hash is
-empty.
-
-```bash
-./bootstrap/update-versions.sh           # dry-run
-./bootstrap/update-versions.sh --update  # rewrite versions.conf in place
-git diff bootstrap/config/versions.conf
-```
-
-Set `GITHUB_TOKEN` to avoid GitHub API rate-limiting (60 req/hr unauth'd).
 
 ---
 

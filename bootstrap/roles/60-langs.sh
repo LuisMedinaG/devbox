@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# Installs language runtimes. Every third-party binary is downloaded at a
-# pinned version and verified against a sha256 from config/versions.conf
-# before execution. No curl|sh.
+# Installs mise and a global tool config; mise installs runtimes on first use.
+# bootstrap.LANGS.1 bootstrap.LANGS.2 bootstrap.LANGS.3 bootstrap.LANGS.4 bootstrap.LANGS.5
 # bootstrap.LANGS.6 bootstrap.LANGS.7 bootstrap.LANGS.8
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
@@ -11,137 +10,41 @@ VERSIONS_CONF="$SCRIPT_DIR/config/versions.conf"
 # shellcheck source=/dev/null
 source "$VERSIONS_CONF"
 
-CLEANUP_DIRS=()
-trap '((${#CLEANUP_DIRS[@]})) && rm -rf "${CLEANUP_DIRS[@]}"' EXIT
-
-# Require explicit sha256 for every tool; die early with a clear message.
 # bootstrap.LANGS.6
-: "${FNM_VERSION:?Set FNM_VERSION in config/versions.conf}"
-: "${FNM_SHA256:?Set FNM_SHA256 in config/versions.conf}"
-
-: "${UV_VERSION:?Set UV_VERSION in config/versions.conf}"
-: "${UV_SHA256_AMD64:?Set UV_SHA256_AMD64 in config/versions.conf}"
-: "${UV_SHA256_ARM64:?Set UV_SHA256_ARM64 in config/versions.conf}"
-
-: "${BUN_VERSION:?Set BUN_VERSION in config/versions.conf}"
-: "${BUN_SHA256_AMD64:?Set BUN_SHA256_AMD64 in config/versions.conf}"
-: "${BUN_SHA256_ARM64:?Set BUN_SHA256_ARM64 in config/versions.conf}"
-
-: "${RUSTUP_VERSION:?Set RUSTUP_VERSION in config/versions.conf}"
-: "${RUSTUP_SHA256_AMD64:?Set RUSTUP_SHA256_AMD64 in config/versions.conf}"
-: "${RUSTUP_SHA256_ARM64:?Set RUSTUP_SHA256_ARM64 in config/versions.conf}"
-
-: "${GO_VERSION:?Set GO_VERSION in config/versions.conf}"
-: "${GO_SHA256_AMD64:?Set GO_SHA256_AMD64 in config/versions.conf}"
-: "${GO_SHA256_ARM64:?Set GO_SHA256_ARM64 in config/versions.conf}"
-
-apt_update_once
-apt_install curl unzip
+: "${MISE_VERSION:?Set MISE_VERSION in config/versions.conf}"
+: "${MISE_SHA256_AMD64:?Set MISE_SHA256_AMD64 in config/versions.conf}"
+: "${MISE_SHA256_ARM64:?Set MISE_SHA256_ARM64 in config/versions.conf}"
 
 # bootstrap.LANGS.8
 case "$(dpkg --print-architecture)" in
-  amd64) ARCH=amd64 ;;
-  arm64) ARCH=arm64 ;;
+  amd64) ARCH=x64;   MISE_SHA256="$MISE_SHA256_AMD64" ;;
+  arm64) ARCH=arm64; MISE_SHA256="$MISE_SHA256_ARM64" ;;
   *) die "Unsupported architecture: $(dpkg --print-architecture)" ;;
 esac
 
-# --- Node via fnm ---
-# fnm-linux.zip is a single binary for all arches; one sha256 covers both.
-# bootstrap.LANGS.1 bootstrap.LANGS.7
-if ! as_user '[[ -x "$HOME/.fnm/fnm" ]]'; then
-  log "Installing fnm ${FNM_VERSION} ..."
-  FNM_URL="https://github.com/Schniz/fnm/releases/download/v${FNM_VERSION}/fnm-linux.zip"
-  TMP_ZIP=$(mktemp --suffix=.zip)
-  CLEANUP_DIRS+=("$TMP_ZIP")
-  download_verify "$FNM_URL" "$TMP_ZIP" "$FNM_SHA256"
-  TMP_DIR=$(mktemp -d)
-  CLEANUP_DIRS+=("$TMP_DIR")
-  unzip -q "$TMP_ZIP" -d "$TMP_DIR"
-  make_user_dir "$USER_HOME/.fnm"
-  install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/fnm" "$USER_HOME/.fnm/fnm"
-  rm -rf "$TMP_ZIP" "$TMP_DIR"
-  as_user '
-    export PATH="$HOME/.fnm:$PATH"
-    eval "$(fnm env)"
-    fnm install --lts
-    fnm default lts-latest
-  '
+# bootstrap.LANGS.7
+if ! command -v mise >/dev/null 2>&1; then
+  log "Installing mise ${MISE_VERSION} ..."
+  MISE_URL="https://github.com/jdx/mise/releases/download/v${MISE_VERSION}/mise-v${MISE_VERSION}-linux-${ARCH}"
+  download_verify "$MISE_URL" /tmp/mise "$MISE_SHA256"
+  install -m 755 /tmp/mise /usr/local/bin/mise
+  rm -f /tmp/mise
 fi
 
-# --- Python: uv ---
-# bootstrap.LANGS.2 bootstrap.LANGS.7
-make_user_dir "$USER_HOME/.local/bin"
-if ! as_user 'command -v uv >/dev/null 2>&1'; then
-  log "Installing uv ${UV_VERSION} ..."
-  UV_SHA256_VAR="UV_SHA256_${ARCH^^}"
-  case "$ARCH" in
-    amd64) UV_TRIPLE="x86_64-unknown-linux-musl" ;;
-    arm64) UV_TRIPLE="aarch64-unknown-linux-musl" ;;
-  esac
-  UV_TARBALL="uv-${UV_TRIPLE}.tar.gz"
-  UV_URL="https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/${UV_TARBALL}"
-  TMP_TGZ=$(mktemp --suffix=.tar.gz)
-  CLEANUP_DIRS+=("$TMP_TGZ")
-  download_verify "$UV_URL" "$TMP_TGZ" "${!UV_SHA256_VAR}"
-  TMP_DIR=$(mktemp -d)
-  CLEANUP_DIRS+=("$TMP_DIR")
-  tar -xzf "$TMP_TGZ" -C "$TMP_DIR" --strip-components=1
-  install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/uv" "$USER_HOME/.local/bin/uv"
-  install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/uvx" "$USER_HOME/.local/bin/uvx"
-  rm -rf "$TMP_TGZ" "$TMP_DIR"
+MISE_CONFIG="$USER_HOME/.config/mise/config.toml"
+if [[ ! -f "$MISE_CONFIG" ]]; then
+  make_user_dir "$USER_HOME/.config/mise"
+  cat > "$MISE_CONFIG" <<'EOF'
+[tools]
+node   = "lts"
+python = "latest"
+go     = "latest"
+rust   = "stable"
+bun    = "latest"
+EOF
+  chown "$USERNAME:$USERNAME" "$MISE_CONFIG"
 fi
 
-# --- Bun ---
-# bootstrap.LANGS.3 bootstrap.LANGS.7
-if ! as_user 'command -v bun >/dev/null 2>&1'; then
-  log "Installing bun ${BUN_VERSION} ..."
-  BUN_SHA256_VAR="BUN_SHA256_${ARCH^^}"
-  case "$ARCH" in
-    amd64) BUN_TAG="bun-linux-x64-baseline" ;;
-    arm64) BUN_TAG="bun-linux-aarch64" ;;
-  esac
-  BUN_URL="https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/${BUN_TAG}.zip"
-  TMP_ZIP=$(mktemp --suffix=.zip)
-  CLEANUP_DIRS+=("$TMP_ZIP")
-  download_verify "$BUN_URL" "$TMP_ZIP" "${!BUN_SHA256_VAR}"
-  TMP_DIR=$(mktemp -d)
-  CLEANUP_DIRS+=("$TMP_DIR")
-  unzip -q "$TMP_ZIP" -d "$TMP_DIR"
-  make_user_dir "$USER_HOME/.bun/bin"
-  install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/${BUN_TAG}/bun" "$USER_HOME/.bun/bin/bun"
-  rm -rf "$TMP_ZIP" "$TMP_DIR"
-fi
-
-# --- Rust via rustup-init ---
-# bootstrap.LANGS.4 bootstrap.LANGS.7
-if ! as_user '[[ -d "$HOME/.cargo" ]]'; then
-  log "Installing rustup ${RUSTUP_VERSION} ..."
-  RUSTUP_SHA256_VAR="RUSTUP_SHA256_${ARCH^^}"
-  case "$ARCH" in
-    amd64) RUSTUP_TRIPLE="x86_64-unknown-linux-gnu" ;;
-    arm64) RUSTUP_TRIPLE="aarch64-unknown-linux-gnu" ;;
-  esac
-  RUSTUP_URL="https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/${RUSTUP_TRIPLE}/rustup-init"
-  TMP_INIT=$(mktemp)
-  CLEANUP_DIRS+=("$TMP_INIT")
-  download_verify "$RUSTUP_URL" "$TMP_INIT" "${!RUSTUP_SHA256_VAR}"
-  # rustup-init reads its own argv[0] path to detect proxy mode. Running from
-  # /tmp/tmp.* causes spurious "unknown proxy name: 'tmp'" errors. Install to a
-  # normal path first.
-  RUSTUP_INIT_BIN="$USER_HOME/.local/bin/rustup-init"
-  install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_INIT" "$RUSTUP_INIT_BIN"
-  as_user "$RUSTUP_INIT_BIN -y --no-modify-path"
-  rm -f "$TMP_INIT" "$RUSTUP_INIT_BIN"
-fi
-
-# --- Go ---
-# bootstrap.LANGS.5 bootstrap.LANGS.7
-if ! /usr/local/go/bin/go version 2>/dev/null | grep -q "go${GO_VERSION} "; then
-  log "Installing Go ${GO_VERSION} ..."
-  GO_SHA256_VAR="GO_SHA256_${ARCH^^}"
-  GO_TARBALL="go${GO_VERSION}.linux-${ARCH}.tar.gz"
-  download_verify "https://go.dev/dl/${GO_TARBALL}" /tmp/go.tgz "${!GO_SHA256_VAR}"
-  rm -rf /usr/local/go
-  tar -C /usr/local -xzf /tmp/go.tgz
-  rm /tmp/go.tgz
-fi
+# bootstrap.LANGS.1 bootstrap.LANGS.2 bootstrap.LANGS.3 bootstrap.LANGS.4 bootstrap.LANGS.5
+log "Installing mise-managed runtimes ..."
+as_user 'mise install'
