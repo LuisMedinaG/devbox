@@ -36,6 +36,17 @@ mkdir -p "$LOG_DIR"
 exec > >(tee -a "$LOG_FILE") 2>&1
 log "Logging to $LOG_FILE"
 
+# ── Role cache (Docker-style layer skipping) ─────────────────────────────────
+# Active only for full default runs (no explicit role args).
+# Hash covers both the role script and common.sh so changes to either invalidate it.
+# A role's cache is written only after it exits 0 — failed roles always re-run.
+CACHE_DIR="/var/lib/bootstrap/cache"
+mkdir -p "$CACHE_DIR"
+
+_role_hash()        { cat "$SCRIPT_DIR/roles/${1}.sh" "$SCRIPT_DIR/lib/common.sh" | sha256sum | cut -d' ' -f1; }
+_role_cached()      { local c="$CACHE_DIR/${1}.sha256"; [[ -f "$c" ]] && [[ "$(cat "$c")" = "$(_role_hash "$1")" ]]; }
+_role_cache_write() { _role_hash "$1" > "$CACHE_DIR/${1}.sha256"; }
+
 ROLES=(
   00-system
   10-user
@@ -51,11 +62,19 @@ ROLES=(
   80-dotfiles     # yadm clone + bootstrap (runs as $USERNAME, requires GitHub SSH)
 )
 
+# Cache is disabled when explicit roles are passed — those always run unconditionally.
+[[ $# -gt 0 ]] && _CACHE_ENABLED=0 || _CACHE_ENABLED=1
+
 if [[ $# -gt 0 ]]; then
   ROLES=("$@")
 fi
 
 for role in "${ROLES[@]}"; do
+  if [[ "$_CACHE_ENABLED" -eq 1 ]] && _role_cached "$role"; then
+    log "==> Skipping role: $role (unchanged since last run)"
+    continue
+  fi
+
   log "==> Running role: $role"
   if [[ "$role" == "30-tailscale" ]]; then
     # Pass TS_AUTHKEY only to this role's child bash; scrub from parent
@@ -71,6 +90,8 @@ for role in "${ROLES[@]}"; do
     # Belt-and-suspenders: strip both secrets from every other child.
     env -u TS_AUTHKEY -u USER_PASSWORD bash "$SCRIPT_DIR/roles/${role}.sh"
   fi
+
+  [[ "$_CACHE_ENABLED" -eq 1 ]] && _role_cache_write "$role"
 done
 
 log "Bootstrap complete."

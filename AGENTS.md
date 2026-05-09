@@ -92,6 +92,7 @@ sudo ./bootstrap/bootstrap.sh svc-ollama
 ## Constraints
 
 - **All roles are idempotent** — safe to re-run. Use `ensure_line`, `ensure_kv`, and `command -v` guards, never raw appends.
+- **Role cache** — full default runs skip roles whose script (+ `common.sh`) hash is unchanged since last success. Cache lives in `/var/lib/bootstrap/cache/`. Explicit role args bypass it entirely. To force-re-run a specific role: `bash bootstrap.sh <role>` or `rm /var/lib/bootstrap/cache/<role>.sha256`.
 - **UFW ordering** — `31-firewall` must run after `30-tailscale` or port 22 closes before the overlay is up.
 - **No `curl | sh`** — all third-party binaries are verified with `download_verify <url> <dest> <sha256>` before execution. Add new tools to `versions.conf`.
 - **Bootstrap defaults**: `USERNAME` auto-detected from `$SUDO_USER` (override explicitly if needed), `TIMEZONE=America/Mexico_City`, `SKIP_FIREWALL=0`.
