@@ -40,6 +40,12 @@ variable "image" {
   default     = "ubuntu-24.04"
 }
 
+variable "devbox_repo" {
+  description = "Git URL of this repo, cloned on the server during bootstrap."
+  type        = string
+  default     = "https://github.com/LuisMedinaG/devbox.git"
+}
+
 variable "ssh_key_names" {
   description = <<-EOT
     Names of SSH public keys already uploaded to your Hetzner project.

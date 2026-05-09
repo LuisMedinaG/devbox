@@ -5,12 +5,12 @@
 #
 # Two clone paths — pick whichever fits your workflow:
 #
-#   SSH (default)    Generate a key, add the printed pubkey to GitHub once,
-#                    then re-run: sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles
-#
-#   HTTPS (no re-run) Export DOTFILES_TOKEN=<github-pat> before running.
+#   HTTPS (recommended) Export DOTFILES_TOKEN=<github-pat> before running.
 #                    The PAT needs repo read scope (or "contents: read" for
-#                    fine-grained tokens).  No SSH key needed; no re-run.
+#                    fine-grained tokens). No SSH key needed; no re-run required.
+#
+#   SSH (fallback)   Generate a key, add the printed pubkey to GitHub once,
+#                    then re-run: sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 

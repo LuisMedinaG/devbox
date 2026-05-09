@@ -7,6 +7,12 @@ if ! id -u "$USERNAME" >/dev/null 2>&1; then
   adduser --disabled-password --gecos "" "$USERNAME"
 fi
 
+# bootstrap.USER.5
+if [[ -n "${USER_PASSWORD:-}" ]]; then
+  echo "$USERNAME:$USER_PASSWORD" | chpasswd
+  log "Password set for $USERNAME."
+fi
+
 # bootstrap.USER.2
 loginctl enable-linger "$USERNAME"
 

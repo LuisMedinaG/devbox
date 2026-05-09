@@ -8,11 +8,15 @@ set -euo pipefail
 : "${TIMEZONE:=America/Mexico_City}"
 : "${TS_AUTHKEY:=}"               # optional, prefills tailscale auth — NOT exported globally
 : "${SKIP_FIREWALL:=${SKIP_UFW:-0}}"  # set to 1 to skip ufw only; fail2ban + sshd hardening still run
-# TS_AUTHKEY is intentionally excluded from this export list — it's passed
-# inline only to role 30-tailscale below to keep the secret out of the env
-# of every other role's child bash process.
+: "${USER_PASSWORD:=}"            # optional — if set, role 10 runs chpasswd; otherwise set manually
+# TS_AUTHKEY and USER_PASSWORD are intentionally excluded from this export list.
+# Each is passed inline only to its consuming role to keep secrets out of all
+# other child process environments.
 USER_HOME="/home/$USERNAME"
 export USERNAME TIMEZONE SKIP_FIREWALL USER_HOME
+
+# Capture before the loop — USER_PASSWORD is unset after role 10 runs.
+[[ -n "$USER_PASSWORD" ]] && _passwd_provided=1 || _passwd_provided=""
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export SCRIPT_DIR
@@ -54,13 +58,15 @@ for role in "${ROLES[@]}"; do
     # Pass TS_AUTHKEY only to this role's child bash; scrub from parent
     # immediately after so any later role (or a re-ordered subset run
     # like `bootstrap.sh 60-langs 30-tailscale`) cannot inherit it.
-    TS_AUTHKEY="$TS_AUTHKEY" bash "$SCRIPT_DIR/roles/${role}.sh"
+    TS_AUTHKEY="$TS_AUTHKEY" env -u USER_PASSWORD bash "$SCRIPT_DIR/roles/${role}.sh"
     unset TS_AUTHKEY
+  elif [[ "$role" == "10-user" ]]; then
+    # Pass USER_PASSWORD only to role 10; unset after so it doesn't leak further.
+    USER_PASSWORD="$USER_PASSWORD" env -u TS_AUTHKEY bash "$SCRIPT_DIR/roles/${role}.sh"
+    unset USER_PASSWORD
   else
-    # Belt-and-suspenders: explicitly strip TS_AUTHKEY from each child's
-    # env so any callers that exported it before invoking bootstrap.sh
-    # cannot leak it into roles other than 30-tailscale.
-    env -u TS_AUTHKEY bash "$SCRIPT_DIR/roles/${role}.sh"
+    # Belt-and-suspenders: strip both secrets from every other child.
+    env -u TS_AUTHKEY -u USER_PASSWORD bash "$SCRIPT_DIR/roles/${role}.sh"
   fi
 done
 
@@ -107,17 +113,18 @@ fi
 
 if [[ -n "$NEEDS_DOTFILES" ]]; then
   (( ++STEP ))
-  log "${STEP}. DEPLOY DOTFILES — role 80 generated an SSH key and printed it."
-  log "   Add the public key to GitHub ( https://github.com/settings/ssh/new ), then:"
-  log "   sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles"
-  log ""
-  log "   Or skip SSH entirely:"
+  log "${STEP}. DEPLOY DOTFILES (recommended — no re-run required):"
   log "   sudo DOTFILES_TOKEN=<github-pat> bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles"
+  log ""
+  log "   SSH fallback — add the key role 80 printed above to GitHub, then:"
+  log "   sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles"
   log ""
 fi
 
-log "SET A PASSWORD for $USERNAME (required for sudo):"
-log "   passwd $USERNAME"
-log ""
+if [[ -z "$_passwd_provided" ]]; then
+  log "SET A PASSWORD for $USERNAME (required for sudo):"
+  log "   passwd $USERNAME"
+  log ""
+fi
 log "Reconnect after reboot: tailscale ssh $USERNAME@devbox"
 log "Or via Tailscale IP:    ssh $USERNAME@<ip-from-tailscale-status>"
