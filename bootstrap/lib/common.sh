@@ -20,7 +20,7 @@ ensure_line() {
 ensure_kv() {
   local key="$1" value="$2" file="$3" sep="${4:- }"
   local escaped_value
-  escaped_value=$(printf '%s' "$value" | sed -e 's/[`$"\\]/\\&/g' -e 's/&/\\&/g')
+  escaped_value=$(printf '%s' "$value" | sed 's/[&\]/\\&/g')
   if grep -Eq "^[#[:space:]]*${key}\b" "$file" 2>/dev/null; then
     sed -i -E "s$(printf '\x01')^[#[:space:]]*(${key})\b.*$(printf '\x01')\1${sep}${escaped_value}$(printf '\x01')" "$file"
   else

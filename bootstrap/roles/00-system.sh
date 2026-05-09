@@ -20,9 +20,6 @@ EOF
 for motd in /etc/update-motd.d/90-updates-available /etc/update-motd.d/95-hwe-eol /etc/update-motd.d/91-release-upgrade; do
   [[ -x "$motd" ]] && chmod -x "$motd" || true
 done
-if [[ -x /etc/update-motd.d/95-hwe-eol ]]; then
-  chmod -x /etc/update-motd.d/95-hwe-eol
-fi
 if [[ -x /usr/lib/update-notifier/apt_check.py ]]; then
   mv /usr/lib/update-notifier/apt_check.py /usr/lib/update-notifier/apt_check.py.disabled
 fi

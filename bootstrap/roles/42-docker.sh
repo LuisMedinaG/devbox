@@ -32,7 +32,6 @@ fi
 # Point it at the Podman socket so Dev Containers work without installing Docker.
 # bootstrap.DOCKER.5
 PODMAN_SOCK_PATH="/run/user/$(id -u "$USERNAME")/podman/podman.sock"
-USER_HOME="$(getent passwd "$USERNAME" | cut -d: -f6)"
 ensure_line "export DOCKER_HOST=unix://${PODMAN_SOCK_PATH}" "${USER_HOME}/.zshenv.local"
 
 # bootstrap.DOCKER.3

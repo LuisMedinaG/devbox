@@ -88,20 +88,25 @@ log ""
 log "=== NEXT STEPS ==="
 log ""
 
+STEP=0
+
 if [[ -n "$NEEDS_REBOOT" ]]; then
-  log "1. REBOOT (kernel updates applied):"
+  (( ++STEP ))
+  log "${STEP}. REBOOT (kernel updates applied):"
   log "   reboot"
   log ""
 fi
 
 if [[ -n "$NEEDS_TAILSCALE" ]]; then
-  log "2. CONNECT TAILSCALE:"
+  (( ++STEP ))
+  log "${STEP}. CONNECT TAILSCALE:"
   log "   sudo tailscale up --ssh --hostname devbox --advertise-tags=tag:devbox"
   log ""
 fi
 
 if [[ -n "$NEEDS_DOTFILES" ]]; then
-  log "3. DEPLOY DOTFILES — role 80 generated an SSH key and printed it."
+  (( ++STEP ))
+  log "${STEP}. DEPLOY DOTFILES — role 80 generated an SSH key and printed it."
   log "   Add the public key to GitHub ( https://github.com/settings/ssh/new ), then:"
   log "   sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles"
   log ""

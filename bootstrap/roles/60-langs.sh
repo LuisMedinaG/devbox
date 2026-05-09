@@ -11,6 +11,9 @@ VERSIONS_CONF="$SCRIPT_DIR/config/versions.conf"
 # shellcheck source=/dev/null
 source "$VERSIONS_CONF"
 
+CLEANUP_DIRS=()
+trap '((${#CLEANUP_DIRS[@]})) && rm -rf "${CLEANUP_DIRS[@]}"' EXIT
+
 # Require explicit sha256 for every tool; die early with a clear message.
 # bootstrap.LANGS.6
 : "${FNM_VERSION:?Set FNM_VERSION in config/versions.conf}"
@@ -49,19 +52,21 @@ if ! as_user '[[ -x "$HOME/.fnm/fnm" ]]'; then
   log "Installing fnm ${FNM_VERSION} ..."
   FNM_URL="https://github.com/Schniz/fnm/releases/download/v${FNM_VERSION}/fnm-linux.zip"
   TMP_ZIP=$(mktemp --suffix=.zip)
+  CLEANUP_DIRS+=("$TMP_ZIP")
   download_verify "$FNM_URL" "$TMP_ZIP" "$FNM_SHA256"
   TMP_DIR=$(mktemp -d)
+  CLEANUP_DIRS+=("$TMP_DIR")
   unzip -q "$TMP_ZIP" -d "$TMP_DIR"
   install -d -m 755 -o "$USERNAME" -g "$USERNAME" "/home/$USERNAME/.fnm"
   install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/fnm" "/home/$USERNAME/.fnm/fnm"
   rm -rf "$TMP_ZIP" "$TMP_DIR"
+  as_user '
+    export PATH="$HOME/.fnm:$PATH"
+    eval "$(fnm env)"
+    fnm install --lts
+    fnm default lts-latest
+  '
 fi
-as_user '
-  export PATH="$HOME/.fnm:$PATH"
-  eval "$(fnm env)"
-  fnm install --lts
-  fnm default lts-latest
-'
 
 # --- Python: uv ---
 # bootstrap.LANGS.2 bootstrap.LANGS.7
@@ -76,8 +81,10 @@ if ! as_user 'command -v uv >/dev/null 2>&1'; then
   UV_TARBALL="uv-${UV_TRIPLE}.tar.gz"
   UV_URL="https://github.com/astral-sh/uv/releases/download/${UV_VERSION}/${UV_TARBALL}"
   TMP_TGZ=$(mktemp --suffix=.tar.gz)
+  CLEANUP_DIRS+=("$TMP_TGZ")
   download_verify "$UV_URL" "$TMP_TGZ" "${!UV_SHA256_VAR}"
   TMP_DIR=$(mktemp -d)
+  CLEANUP_DIRS+=("$TMP_DIR")
   tar -xzf "$TMP_TGZ" -C "$TMP_DIR" --strip-components=1
   install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/uv" "/home/$USERNAME/.local/bin/uv"
   install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/uvx" "/home/$USERNAME/.local/bin/uvx"
@@ -95,8 +102,10 @@ if ! as_user 'command -v bun >/dev/null 2>&1'; then
   esac
   BUN_URL="https://github.com/oven-sh/bun/releases/download/bun-v${BUN_VERSION}/${BUN_TAG}.zip"
   TMP_ZIP=$(mktemp --suffix=.zip)
+  CLEANUP_DIRS+=("$TMP_ZIP")
   download_verify "$BUN_URL" "$TMP_ZIP" "${!BUN_SHA256_VAR}"
   TMP_DIR=$(mktemp -d)
+  CLEANUP_DIRS+=("$TMP_DIR")
   unzip -q "$TMP_ZIP" -d "$TMP_DIR"
   install -d -m 755 -o "$USERNAME" -g "$USERNAME" "/home/$USERNAME/.bun/bin"
   install -m 755 -o "$USERNAME" -g "$USERNAME" "$TMP_DIR/${BUN_TAG}/bun" "/home/$USERNAME/.bun/bin/bun"
@@ -114,6 +123,7 @@ if ! as_user '[[ -d "$HOME/.cargo" ]]'; then
   esac
   RUSTUP_URL="https://static.rust-lang.org/rustup/archive/${RUSTUP_VERSION}/${RUSTUP_TRIPLE}/rustup-init"
   TMP_INIT=$(mktemp)
+  CLEANUP_DIRS+=("$TMP_INIT")
   download_verify "$RUSTUP_URL" "$TMP_INIT" "${!RUSTUP_SHA256_VAR}"
   # rustup-init reads its own argv[0] path to detect proxy mode. Running from
   # /tmp/tmp.* causes spurious "unknown proxy name: 'tmp'" errors. Install to a
