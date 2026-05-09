@@ -37,8 +37,9 @@ TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
 # → follow on-screen NEXT STEPS (add key, then `bash bootstrap.sh 80-dotfiles`)
 ```
 
-Set `passwd luis` afterwards (Hetzner provisions no user password) and reboot
-if a kernel update was applied. Reconnect via `tailscale ssh luis@devbox`.
+If you passed `USER_PASSWORD=`, the password is already set. Otherwise run
+`passwd luis` before disconnecting. Reboot if a kernel update was applied.
+Reconnect via `tailscale ssh luis@devbox`.
 
 ---
 
@@ -282,6 +283,7 @@ Or enable permanently in `.claude/settings.json`:
 | `SKIP_FIREWALL`   | `0`                    | `1` skips ufw + fail2ban; **sshd hardening still runs** |
 | `TS_AUTHKEY`      | _(empty)_              | Tailscale auth key for unattended connect (cleared after use) |
 | `DOTFILES_TOKEN`  | _(empty)_              | GitHub PAT for HTTPS dotfiles clone (no SSH key needed) |
+| `USER_PASSWORD`   | _(empty)_              | If set, role 10 runs `chpasswd` — eliminates manual `passwd` step |
 
 ---
 

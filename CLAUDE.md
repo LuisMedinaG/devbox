@@ -12,6 +12,8 @@ Feature specs live in `features/devbox/` as `*.feature.yaml`. Each requirement h
 - Never renumber requirements; use `deprecated: true` instead of deleting.
 - Run `npx @acai.sh/cli skill` before planning implementation work to load the full acai workflow.
 
+The `# bootstrap.ROLE.N` comment tags scattered throughout role scripts are ACID references — they trace each code block back to a requirement in `features/devbox/`. They are not arbitrary labels; do not remove or renumber them.
+
 ## Path-scoped rules
 
 Loaded automatically based on the files being edited — no action needed:
