@@ -22,14 +22,15 @@ cd terraform && terraform apply
 # terraform output next_steps   ← reveals the full command including the Tailscale auth key
 ```
 
-`terraform apply` generates a one-time Tailscale auth key and embeds it in `next_steps`.
+`terraform apply` generates a short-lived (1-hour) Tailscale auth key and embeds it in `next_steps`,
+along with `MACHINE_NAME` / `TS_TAG` derived from `var.hostname`.
 Run `terraform output next_steps` to reveal the full SSH + bootstrap command, then paste it on the server.
 
-Tear down with `terraform destroy` — the Tailscale device is removed automatically so the next provision gets the clean `devbox` hostname.
+Tear down with `terraform destroy` — the Tailscale device is removed automatically so the next provision gets the clean hostname back. A pre-flight cleanup also runs on every `terraform apply` that creates or replaces the server, so an orphan device with the same hostname won't force `<hostname>-1`.
 
-If you passed `USER_PASSWORD=`, the password is already set. Otherwise run
-`passwd $USERNAME` before disconnecting. Reboot if a kernel update was applied.
-Reconnect via `tailscale ssh $USERNAME@devbox`.
+After bootstrap completes, set the user password manually (`passwd $USERNAME`) before
+disconnecting — required for sudo. Reboot if a kernel update was applied.
+Reconnect via `tailscale ssh $USERNAME@$MACHINE_NAME`.
 
 ---
 
@@ -277,12 +278,13 @@ Or enable permanently in `.claude/settings.json`:
 
 | Variable          | Default                | Description |
 |-------------------|------------------------|-------------|
-| `USERNAME`        | _(required)_               | User to create — explicit or auto-detected from `$SUDO_USER` |
+| `USERNAME`        | _(required)_           | User to create — explicit or auto-detected from `$SUDO_USER` |
+| `MACHINE_NAME`    | `devbox`               | Tailscale device hostname + advertised tag prefix |
+| `TS_TAG`          | `tag:${MACHINE_NAME}`  | Tailscale ACL tag for the device |
+| `TS_AUTHKEY`      | _(empty)_              | Tailscale auth key for unattended connect (cleared after use) |
 | `DOTFILES_REPO`   | _(empty — skip)_       | yadm dotfiles repo URL; role 80 is skipped if unset |
 | `TIMEZONE`        | `America/Mexico_City`  | Host timezone |
 | `SKIP_FIREWALL`   | `0`                    | `1` skips ufw + fail2ban; **sshd hardening still runs** |
-| `TS_AUTHKEY`      | _(empty)_              | Tailscale auth key for unattended connect (cleared after use) |
-| `DOTFILES_TOKEN`  | _(empty)_              | _(unused by bootstrap)_ Store in `~/.netrc` for cloning private repos on the host |
 | `USER_PASSWORD`   | _(empty)_              | If set, role 10 runs `chpasswd` — eliminates manual `passwd` step |
 
 ---

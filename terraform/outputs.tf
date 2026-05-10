@@ -15,7 +15,7 @@ output "status" {
 }
 
 output "next_steps" {
-  description = "Ready-to-run bootstrap commands (printed after apply). Contains the Tailscale auth key."
+  description = "Ready-to-run bootstrap commands (printed after apply). Contains the (1-hour) Tailscale auth key."
   sensitive   = true
   value       = <<-EOT
 
@@ -24,6 +24,8 @@ output "next_steps" {
     git clone ${var.devbox_repo} ~/projects/devbox
     cd ~/projects/devbox
     USERNAME=luis \
+      MACHINE_NAME=${var.hostname} \
+      TS_TAG=${local.ts_tag} \
       TS_AUTHKEY=${tailscale_tailnet_key.devbox.key} \
       DOTFILES_REPO=https://github.com/LuisMedinaG/.dotfiles.git \
       bash bootstrap/bootstrap.sh

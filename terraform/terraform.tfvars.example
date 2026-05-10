@@ -11,7 +11,8 @@ tailscale_oauth_client_secret = "tskey-client-xxxxxxxxxxxx"
 tailscale_tailnet             = "example.com"   # shown in the admin console
 
 # Optional overrides — defaults match the CLI workflow in README.md
-# server_name = "devbox"
-# server_type = "cx23"        # EU-only on some accounts; try cpx21 in ash/hil
-# location    = "nbg1"        # ash = closest US region to LATAM
-# image       = "ubuntu-24.04"
+# hostname      = "devbox"      # also sets the Tailscale device hostname
+# tailscale_tag = "tag:devbox"  # ACL tag; defaults to `tag:<hostname>` if unset
+# server_type   = "cx23"        # EU-only on some accounts; try cpx21 in ash/hil
+# location      = "nbg1"        # ash = closest US region to LATAM
+# image         = "ubuntu-24.04"

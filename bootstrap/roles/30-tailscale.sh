@@ -25,17 +25,20 @@ fi
 enable_service tailscaled
 
 # bootstrap.TAILSCALE.2 bootstrap.TAILSCALE.3
+: "${MACHINE_NAME:=devbox}"
+: "${TS_TAG:=tag:${MACHINE_NAME}}"
+
 if ! tailscale status >/dev/null 2>&1; then
   if [[ -n "$TS_AUTHKEY" ]]; then
     tailscale up --ssh --authkey "$TS_AUTHKEY" \
-      --hostname devbox \
-      --advertise-tags=tag:devbox
+      --hostname "$MACHINE_NAME" \
+      --advertise-tags="$TS_TAG"
       # Note: this role runs in a child bash process; clearing TS_AUTHKEY here
       # does not affect the parent. The parent bootstrap.sh unsets it after
       # this role completes (search "unset TS_AUTHKEY" in bootstrap.sh).
       # bootstrap.TAILSCALE.3-1
   else
-    warn "Run: sudo tailscale up --ssh --hostname devbox --advertise-tags=tag:devbox"
+    warn "Run: sudo tailscale up --ssh --hostname $MACHINE_NAME --advertise-tags=$TS_TAG"
   fi
 fi
 

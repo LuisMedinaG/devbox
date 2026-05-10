@@ -9,10 +9,19 @@ variable "hcloud_token" {
   default     = null
 }
 
-variable "server_name" {
-  description = "Hetzner server name."
+variable "hostname" {
+  description = <<-EOT
+    Hostname for both the Hetzner server and the Tailscale device.
+    Changing this REPLACES the server (destroy + recreate) — back up first.
+  EOT
   type        = string
   default     = "devbox"
+}
+
+variable "tailscale_tag" {
+  description = "Tailscale ACL tag for this device. Defaults to `tag:<hostname>` when unset."
+  type        = string
+  default     = null
 }
 
 variable "server_type" {
@@ -52,14 +61,14 @@ variable "tailscale_oauth_client_id" {
     with scopes: auth_keys (write), devices (read + delete).
     Used to generate a one-time auth key and to remove the device on destroy.
   EOT
-  type      = string
-  sensitive = true
+  type        = string
+  sensitive   = true
 }
 
 variable "tailscale_oauth_client_secret" {
   description = "Tailscale OAuth client secret (paired with tailscale_oauth_client_id)."
-  type      = string
-  sensitive = true
+  type        = string
+  sensitive   = true
 }
 
 variable "tailscale_tailnet" {

@@ -8,14 +8,16 @@ set -euo pipefail
 : "${USERNAME:=${SUDO_USER:-}}"
 [[ -n "$USERNAME" ]] || { printf '[fail] USERNAME is not set. Run as: USERNAME=<user> bash bootstrap.sh\n' >&2; exit 1; }
 : "${TIMEZONE:=America/Mexico_City}"
-: "${TS_AUTHKEY:=}"               # optional, prefills tailscale auth — NOT exported globally
+: "${MACHINE_NAME:=devbox}"        # tailnet hostname + sshd identity (role 30)
+: "${TS_TAG:=tag:${MACHINE_NAME}}" # tailscale ACL tag (role 30)
+: "${TS_AUTHKEY:=}"                # optional, prefills tailscale auth — NOT exported globally
 : "${SKIP_FIREWALL:=${SKIP_UFW:-0}}"  # set to 1 to skip ufw only; fail2ban + sshd hardening still run
-: "${USER_PASSWORD:=}"            # optional — if set, role 10 runs chpasswd; otherwise set manually
+: "${USER_PASSWORD:=}"             # optional — if set, role 10 runs chpasswd; otherwise set manually
 # TS_AUTHKEY and USER_PASSWORD are intentionally excluded from this export list.
 # Each is passed inline only to its consuming role to keep secrets out of all
 # other child process environments.
 USER_HOME="/home/$USERNAME"
-export USERNAME TIMEZONE SKIP_FIREWALL USER_HOME
+export USERNAME TIMEZONE MACHINE_NAME TS_TAG SKIP_FIREWALL USER_HOME
 
 # Capture before the loop — USER_PASSWORD is unset after role 10 runs.
 [[ -n "$USER_PASSWORD" ]] && _passwd_provided=1 || _passwd_provided=""
@@ -131,24 +133,25 @@ fi
 if [[ -n "$NEEDS_TAILSCALE" ]]; then
   (( ++STEP ))
   log "${STEP}. CONNECT TAILSCALE:"
-  log "   sudo tailscale up --ssh --hostname devbox --advertise-tags=tag:devbox"
+  log "   sudo tailscale up --ssh --hostname $MACHINE_NAME --advertise-tags=$TS_TAG"
   log ""
 fi
 
 if [[ -n "$NEEDS_DOTFILES" ]]; then
   (( ++STEP ))
-  log "${STEP}. DEPLOY DOTFILES (recommended — no re-run required):"
-  log "   sudo DOTFILES_TOKEN=<github-pat> bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles"
-  log ""
-  log "   SSH fallback — add the key role 80 printed above to GitHub, then:"
+  log "${STEP}. DEPLOY DOTFILES:"
   log "   sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles"
+  log ""
+  log "   If the public HTTPS clone fails, add the SSH key role 80 printed"
+  log "   above to GitHub and re-run the same command."
   log ""
 fi
 
 if [[ -z "$_passwd_provided" ]]; then
-  log "SET A PASSWORD for $USERNAME (required for sudo):"
+  (( ++STEP ))
+  log "${STEP}. SET A PASSWORD for $USERNAME (required for sudo):"
   log "   passwd $USERNAME"
   log ""
 fi
-log "Reconnect after reboot: tailscale ssh $USERNAME@devbox"
+log "Reconnect after reboot: tailscale ssh $USERNAME@$MACHINE_NAME"
 log "Or via Tailscale IP:    ssh $USERNAME@<ip-from-tailscale-status>"
