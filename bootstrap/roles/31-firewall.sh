@@ -28,13 +28,16 @@ else
 fi
 
 # Restrict SSH to Tailscale CGNAT range only — public port 22 is closed.
-# Only do this if Tailscale is connected; otherwise leave OpenSSH open so the
-# operator can still recover via public SSH.
+# Only do this if Tailscale is connected; otherwise restore public SSH so the
+# operator can still recover. This handles re-runs where Tailscale is no longer
+# up after a previous provision had already restricted SSH to the CGNAT range.
 if tailscale status >/dev/null 2>&1; then
   ufw delete allow OpenSSH >/dev/null 2>&1 || true
   ufw allow from 100.64.0.0/10 to any port 22 comment "SSH via Tailscale only" >/dev/null
   log "Port 22 restricted to Tailscale CGNAT range."
 else
-  warn "Tailscale not connected — port 22 remains open on public IP."
+  ufw allow OpenSSH >/dev/null 2>&1 || true
+  ufw delete allow from 100.64.0.0/10 to any port 22 >/dev/null 2>&1 || true
+  warn "Tailscale not connected — port 22 open on public IP."
   warn "Re-run role 31-firewall after 'tailscale up' to restrict it."
 fi
