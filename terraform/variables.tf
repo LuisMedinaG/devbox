@@ -55,6 +55,22 @@ variable "devbox_repo" {
   default     = "https://github.com/LuisMedinaG/devbox.git"
 }
 
+variable "username" {
+  description = "Login user created on the server. Password is set manually after first login."
+  type        = string
+  default     = "luis"
+}
+
+variable "dotfiles_repo" {
+  description = <<-EOT
+    yadm dotfiles repo URL cloned during bootstrap (role 80).
+    HTTPS is tried first; SSH is the fallback for private repos.
+    Set to an empty string to skip dotfiles deployment.
+  EOT
+  type        = string
+  default     = "https://github.com/LuisMedinaG/.dotfiles.git"
+}
+
 variable "tailscale_oauth_client_id" {
   description = <<-EOT
     Tailscale OAuth client ID. Create one at https://login.tailscale.com/admin/settings/oauth

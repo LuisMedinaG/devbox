@@ -39,6 +39,24 @@ resource "hcloud_server" "devbox" {
   image       = var.image
   location    = var.location
   ssh_keys    = [for k in data.hcloud_ssh_key.selected : k.id]
+
+  user_data = templatefile("${path.module}/cloud-init.yaml.tpl", {
+    devbox_repo   = var.devbox_repo
+    username      = var.username
+    hostname      = var.hostname
+    ts_tag        = local.ts_tag
+    ts_authkey    = tailscale_tailnet_key.devbox.key
+    dotfiles_repo = var.dotfiles_repo
+  })
+
+  # The Tailscale auth key regenerates whenever its resource is replaced
+  # (e.g. after expiry) which would force a server replacement here. Since
+  # cloud-init only runs once on first boot anyway, ignore user_data drift.
+  # To re-trigger a clean bootstrap, run `terraform taint hcloud_server.devbox`
+  # or destroy + re-apply.
+  lifecycle {
+    ignore_changes = [user_data]
+  }
 }
 
 # One-time auth key for bootstrap — non-reusable, non-ephemeral, preauthorized.

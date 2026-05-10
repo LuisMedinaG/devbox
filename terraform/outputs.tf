@@ -15,19 +15,21 @@ output "status" {
 }
 
 output "next_steps" {
-  description = "Ready-to-run bootstrap commands (printed after apply). Contains the (1-hour) Tailscale auth key."
-  sensitive   = true
+  description = "Reconnect and monitoring commands. Cloud-init drives the bootstrap on first boot."
   value       = <<-EOT
 
-    ssh root@${hcloud_server.devbox.ipv4_address}
-    apt-get update -y && apt-get install -y git
-    git clone ${var.devbox_repo} ~/projects/devbox
-    cd ~/projects/devbox
-    USERNAME=luis \
-      MACHINE_NAME=${var.hostname} \
-      TS_TAG=${local.ts_tag} \
-      TS_AUTHKEY=${tailscale_tailnet_key.devbox.key} \
-      DOTFILES_REPO=https://github.com/LuisMedinaG/.dotfiles.git \
-      bash bootstrap/bootstrap.sh
+    Bootstrap is running via cloud-init (~5–10 min).
+
+    Tail progress:
+      ssh root@${hcloud_server.devbox.ipv4_address} tail -f /var/log/cloud-init-output.log
+
+    Wait for completion (blocks until done):
+      ssh root@${hcloud_server.devbox.ipv4_address} cloud-init status --wait
+
+    Set the user password (kept out of cloud-init for security):
+      ssh root@${hcloud_server.devbox.ipv4_address} passwd ${var.username}
+
+    Reconnect over Tailscale:
+      tailscale ssh ${var.username}@${var.hostname}
   EOT
 }

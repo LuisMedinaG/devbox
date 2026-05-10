@@ -11,26 +11,59 @@ sessions, survives disconnects. Access via Tailscale SSH or Mosh.
 
 ## Quickstart
 
-Provision and bootstrap from a clean Ubuntu 24.04 host. Pick your dotfiles auth
-path (HTTPS is single-pass, SSH needs one re-run):
+One command provisions, bootstraps, and joins the box to your tailnet:
 
 ```bash
-# 1. Provision (from your Mac) — prints a ready-to-run bootstrap command at the end
 export HCLOUD_TOKEN=<hetzner-api-token>
 cd terraform && terraform apply
-
-# terraform output next_steps   ← reveals the full command including the Tailscale auth key
 ```
 
-`terraform apply` generates a short-lived (1-hour) Tailscale auth key and embeds it in `next_steps`,
-along with `MACHINE_NAME` / `TS_TAG` derived from `var.hostname`.
-Run `terraform output next_steps` to reveal the full SSH + bootstrap command, then paste it on the server.
+Cloud-init drives `bootstrap.sh` on first boot — no manual SSH step.
+Watch progress (~5–10 min):
 
-Tear down with `terraform destroy` — the Tailscale device is removed automatically so the next provision gets the clean hostname back. A pre-flight cleanup also runs on every `terraform apply` that creates or replaces the server, so an orphan device with the same hostname won't force `<hostname>-1`.
+```bash
+ssh root@$(terraform output -raw ipv4) tail -f /var/log/cloud-init-output.log
+# or block until done:
+ssh root@$(terraform output -raw ipv4) cloud-init status --wait
+```
 
-After bootstrap completes, set the user password manually (`passwd $USERNAME`) before
-disconnecting — required for sudo. Reboot if a kernel update was applied.
-Reconnect via `tailscale ssh $USERNAME@$MACHINE_NAME`.
+Run `terraform output next_steps` for the same commands templated with the
+correct IP and username.
+
+### After bootstrap finishes
+
+```bash
+# Set the user password (kept out of cloud-init for security — see below):
+ssh root@<ip> passwd luis
+
+# Reconnect via Tailscale:
+tailscale ssh luis@devbox
+```
+
+Tear down with `terraform destroy` — the Tailscale device is removed
+automatically so the next provision gets the clean hostname back. A pre-flight
+cleanup also runs on every `terraform apply` that creates or replaces the
+server.
+
+### What's in `user_data`
+
+Cloud-init runs as root on first boot with these env vars injected from
+Terraform: `USERNAME`, `MACHINE_NAME`, `TS_TAG`, `TS_AUTHKEY`, `DOTFILES_REPO`.
+
+| Var | Sensitivity | Reason it's safe to embed |
+|-----|-------------|---------------------------|
+| `TS_AUTHKEY` | secret, **short-lived** | 1-hour expiry, single-device-join scope; useless once consumed |
+| Others | non-secret | hostname / repo URL / username |
+
+`USER_PASSWORD` is intentionally **excluded**. Hetzner stores `user_data` for
+the lifetime of the server (readable via the API), so a long-lived password
+there would leak indefinitely. Set it manually post-bootstrap.
+
+If cloud-init fails part-way, ssh in and re-run bootstrap by hand:
+
+```bash
+cd /root/projects/devbox && bash bootstrap/bootstrap.sh
+```
 
 ---
 

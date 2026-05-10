@@ -13,6 +13,8 @@ tailscale_tailnet             = "example.com"   # shown in the admin console
 # Optional overrides — defaults match the CLI workflow in README.md
 # hostname      = "devbox"      # also sets the Tailscale device hostname
 # tailscale_tag = "tag:devbox"  # ACL tag; defaults to `tag:<hostname>` if unset
+# username      = "luis"        # login user created during bootstrap
+# dotfiles_repo = "https://github.com/LuisMedinaG/.dotfiles.git"
 # server_type   = "cx23"        # EU-only on some accounts; try cpx21 in ash/hil
 # location      = "nbg1"        # ash = closest US region to LATAM
 # image         = "ubuntu-24.04"
