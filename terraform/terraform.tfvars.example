@@ -1,8 +1,14 @@
 ssh_key_names = ["mac-pub-id_ed"]   # must already exist; see `hcloud ssh-key list`
 
-# Auth: prefer `export HCLOUD_TOKEN=...` over the line below to keep the
+# Hetzner: prefer `export HCLOUD_TOKEN=...` over the line below to keep the
 # token off disk. Uncomment only if you really want it in tfvars.
 # hcloud_token = "paste-your-hetzner-api-token-here"
+
+# Tailscale OAuth client — create at https://login.tailscale.com/admin/settings/oauth
+# Required scopes: auth_keys (write), devices (read + delete)
+tailscale_oauth_client_id     = "k012345CNTRL"
+tailscale_oauth_client_secret = "tskey-client-xxxxxxxxxxxx"
+tailscale_tailnet             = "example.com"   # shown in the admin console
 
 # Optional overrides — defaults match the CLI workflow in README.md
 # server_name = "devbox"

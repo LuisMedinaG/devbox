@@ -15,23 +15,17 @@ Provision and bootstrap from a clean Ubuntu 24.04 host. Pick your dotfiles auth
 path (HTTPS is single-pass, SSH needs one re-run):
 
 ```bash
-# 1. Provision (from your Mac)
-export HCLOUD_TOKEN=<api-token>
+# 1. Provision (from your Mac) — prints a ready-to-run bootstrap command at the end
+export HCLOUD_TOKEN=<hetzner-api-token>
 cd terraform && terraform apply
-ssh root@$(terraform output -raw ipv4)
 
-# 2. On the host: clone this repo
-apt-get update -y && apt-get install -y git
-git clone https://github.com/LuisMedinaG/devbox.git ~/projects/devbox
-
-# 3. Bootstrap
-cd ~/projects/devbox/bootstrap
-
-USERNAME=luis \
-  TS_AUTHKEY=tskey-auth-xxxx \
-  DOTFILES_REPO=https://github.com/LuisMedinaG/.dotfiles.git \
-  bash bootstrap.sh
+# terraform output next_steps   ← reveals the full command including the Tailscale auth key
 ```
+
+`terraform apply` generates a one-time Tailscale auth key and embeds it in `next_steps`.
+Run `terraform output next_steps` to reveal the full SSH + bootstrap command, then paste it on the server.
+
+Tear down with `terraform destroy` — the Tailscale device is removed automatically so the next provision gets the clean `devbox` hostname.
 
 If you passed `USER_PASSWORD=`, the password is already set. Otherwise run
 `passwd $USERNAME` before disconnecting. Reboot if a kernel update was applied.

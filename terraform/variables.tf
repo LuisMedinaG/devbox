@@ -46,6 +46,27 @@ variable "devbox_repo" {
   default     = "https://github.com/LuisMedinaG/devbox.git"
 }
 
+variable "tailscale_oauth_client_id" {
+  description = <<-EOT
+    Tailscale OAuth client ID. Create one at https://login.tailscale.com/admin/settings/oauth
+    with scopes: auth_keys (write), devices (read + delete).
+    Used to generate a one-time auth key and to remove the device on destroy.
+  EOT
+  type      = string
+  sensitive = true
+}
+
+variable "tailscale_oauth_client_secret" {
+  description = "Tailscale OAuth client secret (paired with tailscale_oauth_client_id)."
+  type      = string
+  sensitive = true
+}
+
+variable "tailscale_tailnet" {
+  description = "Tailscale tailnet name — shown in the admin console (e.g. 'example.com' or the org slug)."
+  type        = string
+}
+
 variable "ssh_key_names" {
   description = <<-EOT
     Names of SSH public keys already uploaded to your Hetzner project.

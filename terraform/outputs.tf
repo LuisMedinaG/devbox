@@ -15,13 +15,17 @@ output "status" {
 }
 
 output "next_steps" {
-  description = "Run these commands after apply to provision the server (wait ~30s for sshd)."
+  description = "Ready-to-run bootstrap commands (printed after apply). Contains the Tailscale auth key."
+  sensitive   = true
   value       = <<-EOT
 
     ssh root@${hcloud_server.devbox.ipv4_address}
-    apt-get install -y git
+    apt-get update -y && apt-get install -y git
     git clone ${var.devbox_repo} ~/projects/devbox
     cd ~/projects/devbox
-    USERNAME=luis TS_AUTHKEY=<key> DOTFILES_TOKEN=<pat> bash bootstrap/bootstrap.sh
+    USERNAME=luis \
+      TS_AUTHKEY=${tailscale_tailnet_key.devbox.key} \
+      DOTFILES_REPO=https://github.com/LuisMedinaG/.dotfiles.git \
+      bash bootstrap/bootstrap.sh
   EOT
 }
