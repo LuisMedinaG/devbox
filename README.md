@@ -27,16 +27,10 @@ git clone https://github.com/LuisMedinaG/devbox.git ~/projects/devbox
 # 3. Bootstrap
 cd ~/projects/devbox/bootstrap
 
-# Path A — single pass (recommended): HTTPS dotfiles clone via GitHub PAT
 USERNAME=luis \
   TS_AUTHKEY=tskey-auth-xxxx \
-  DOTFILES_REPO=git@github.com:LuisMedinaG/.dotfiles.git \
-  DOTFILES_TOKEN=ghp_xxxxxxxxxxxx \
+  DOTFILES_REPO=https://github.com/LuisMedinaG/.dotfiles.git \
   bash bootstrap.sh
-
-# Path B — SSH dotfiles: bootstrap prints an SSH key, add it to GitHub, re-run
-USERNAME=luis TS_AUTHKEY=tskey-auth-xxxx bash bootstrap.sh
-# → follow on-screen NEXT STEPS (add key, then re-run with DOTFILES_REPO set)
 ```
 
 If you passed `USER_PASSWORD=`, the password is already set. Otherwise run
@@ -170,37 +164,42 @@ cat ~/.ssh/id_ed25519.pub >> bootstrap/config/ssh-authorized-keys
 Role 80 deploys your dotfiles via yadm. Set `DOTFILES_REPO` to your repo URL
 (SSH or HTTPS). If unset, the role is skipped with a warning.
 
-Two clone paths — `DOTFILES_TOKEN` (HTTPS) is single-pass; SSH needs one re-run.
+Role 80 tries a plain HTTPS clone first — no credentials needed for public
+repos. If that fails (private repo), it falls back to SSH.
 
-### HTTPS (recommended)
+### HTTPS (default, public repos)
 
-Set `DOTFILES_TOKEN` to a GitHub PAT before running bootstrap. The token is
-written to a temporary `~/.netrc` (mode 600) and removed via `trap` on exit;
-it never touches argv, env (`ps`), git config, or logs.
-
-Create a fine-grained PAT at <https://github.com/settings/tokens?type=beta>:
-- **Repository access**: your dotfiles repo only
-- **Permissions → Contents**: Read-only
-- **Expiration**: short (you only need it once)
+Pass an HTTPS URL and the clone requires no token:
 
 ```bash
-DOTFILES_REPO=git@github.com:<owner>/.dotfiles.git \
-  DOTFILES_TOKEN=ghp_xxxxxxxxxxxx \
-  bash bootstrap.sh
+DOTFILES_REPO=https://github.com/<owner>/.dotfiles.git bash bootstrap.sh
 ```
 
-### SSH (default)
+### SSH (private repos or push access)
 
 Role 80 generates `~$USERNAME/.ssh/id_ed25519` and prints the public key. Add it to
 GitHub at <https://github.com/settings/ssh/new>, then re-run:
 
 ```bash
-sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles
+sudo bash ~/projects/devbox/bootstrap.sh 80-dotfiles
 ```
 
 Role 80 first runs an SSH connectivity pre-check (`BatchMode=yes`,
 `ConnectTimeout=10`, `StrictHostKeyChecking=accept-new`) so failures surface
 in seconds instead of hanging.
+
+### GitHub PAT (reference — for cloning other private repos on the host)
+
+If you need to clone private repos from the host after provisioning, store a
+fine-grained PAT in `~/.netrc` (mode 600):
+
+```
+machine github.com login x-access-token password ghp_xxxxxxxxxxxx
+```
+
+Create a PAT at <https://github.com/settings/tokens?type=beta>:
+- **Repository access**: only the repos you need
+- **Permissions → Contents**: Read-only
 
 ### Notes
 
@@ -289,7 +288,7 @@ Or enable permanently in `.claude/settings.json`:
 | `TIMEZONE`        | `America/Mexico_City`  | Host timezone |
 | `SKIP_FIREWALL`   | `0`                    | `1` skips ufw + fail2ban; **sshd hardening still runs** |
 | `TS_AUTHKEY`      | _(empty)_              | Tailscale auth key for unattended connect (cleared after use) |
-| `DOTFILES_TOKEN`  | _(empty)_              | GitHub PAT for HTTPS dotfiles clone (no SSH key needed) |
+| `DOTFILES_TOKEN`  | _(empty)_              | _(unused by bootstrap)_ Store in `~/.netrc` for cloning private repos on the host |
 | `USER_PASSWORD`   | _(empty)_              | If set, role 10 runs `chpasswd` — eliminates manual `passwd` step |
 
 ---

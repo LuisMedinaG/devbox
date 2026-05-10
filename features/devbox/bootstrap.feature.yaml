@@ -136,7 +136,7 @@ components:
       1: Clones the dotfiles git repo via yadm as the interactive user
       2: Runs yadm bootstrap to install user-level tooling (Homebrew packages, configs)
       2-note: Fails gracefully with a warning if GitHub SSH is not configured yet
-      3: Supports HTTPS clone via DOTFILES_TOKEN (GitHub PAT with repo read scope); converts the SSH URL to HTTPS, writes the token to a temporary ~/.netrc that is removed via trap on exit, and never exposes the token in argv or process environment
+      3: Attempts HTTPS clone first (no credentials needed for public repos); falls back to SSH if HTTPS fails
       4: When cloning via SSH, pre-checks GitHub connectivity with BatchMode=yes, ConnectTimeout=10, and StrictHostKeyChecking=accept-new so authentication failures surface in seconds instead of hanging
       5: Passes --no-bootstrap to yadm clone and runs yadm bootstrap explicitly afterward, avoiding interactive prompts and double-runs in non-TTY contexts
 

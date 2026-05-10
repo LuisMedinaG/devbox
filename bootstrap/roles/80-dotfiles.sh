@@ -5,12 +5,10 @@
 #
 # Two clone paths — pick whichever fits your workflow:
 #
-#   HTTPS (recommended) Export DOTFILES_TOKEN=<github-pat> before running.
-#                    The PAT needs repo read scope (or "contents: read" for
-#                    fine-grained tokens). No SSH key needed; no re-run required.
+#   HTTPS (default)  Works for public repos — no credentials needed.
 #
 #   SSH (fallback)   Generate a key, add the printed pubkey to GitHub once,
-#                    then re-run: sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles
+#                    then re-run: sudo bash ~/projects/devbox/bootstrap.sh 80-dotfiles
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
@@ -54,40 +52,16 @@ if as_user '[[ -d "$HOME/.local/share/yadm/repo.git" ]]'; then
   exit 0
 fi
 
-# ── Path 1: HTTPS clone via Personal Access Token (zero re-run) ─────────────
-if [[ -n "${DOTFILES_TOKEN:-}" ]]; then
-  log "DOTFILES_TOKEN set — cloning via HTTPS (no SSH key needed)."
-
-  # Convert git@github.com:owner/repo.git → https://github.com/owner/repo.git
-  HTTPS_REPO="${DOTFILES_REPO/git@github.com:/https://github.com/}"
-
-  # Write the PAT to the user's .netrc so it is never visible in argv or the
-  # process environment (which `ps` can expose).  Back up any existing .netrc
-  # and restore it on exit — even if this script aborts midway.
-  NETRC_FILE="$HOME_DIR/.netrc"
-  NETRC_BACKUP="$HOME_DIR/.netrc.bootstrap-bak"
-  _cleanup_netrc() {
-    rm -f "$NETRC_FILE"
-    [[ -f "$NETRC_BACKUP" ]] && mv "$NETRC_BACKUP" "$NETRC_FILE" || true
-  }
-  trap '_cleanup_netrc' EXIT INT TERM
-
-  [[ -f "$NETRC_FILE" ]] && cp "$NETRC_FILE" "$NETRC_BACKUP"
-  install -m 600 -o "$USERNAME" -g "$USERNAME" /dev/null "$NETRC_FILE"
-  printf 'machine github.com login x-access-token password %s\n' "$DOTFILES_TOKEN" >"$NETRC_FILE"
-
-  # GIT_TERMINAL_PROMPT=0 prevents git from falling back to an interactive
-  # credential prompt if .netrc auth fails (e.g. bad token).
-  if sudo -u "$USERNAME" -H env GIT_TERMINAL_PROMPT=0 \
-       yadm clone --no-bootstrap -- "$HTTPS_REPO"; then
-    log "Dotfiles cloned successfully."
-  else
-    die "HTTPS clone failed — verify DOTFILES_TOKEN has repo read access and DOTFILES_REPO is correct."
-  fi
-
+# ── Path 1: HTTPS clone (public repo, no credentials needed) ─────────────────
+HTTPS_REPO="${DOTFILES_REPO/git@github.com:/https://github.com/}"
+log "Cloning dotfiles via HTTPS ..."
+if sudo -u "$USERNAME" -H env GIT_TERMINAL_PROMPT=0 \
+     yadm clone --no-bootstrap -- "$HTTPS_REPO" 2>/dev/null; then
+  log "Dotfiles cloned successfully."
   _run_yadm_bootstrap
   exit 0
 fi
+warn "HTTPS clone failed — repo may be private. Falling back to SSH."
 
 # ── Path 2: SSH clone ────────────────────────────────────────────────────────
 
