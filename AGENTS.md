@@ -16,7 +16,8 @@ sudo ./bootstrap/bootstrap.sh 40-dev-tools
 # Run post-bootstrap assertions (on the server)
 bats tests/e2e.bats
 
-# Provision the Hetzner server (optional — alternative to hcloud CLI)
+# Full provision + bootstrap from your Mac — single command
+# (cloud-init clones the repo and runs bootstrap.sh on first boot)
 cd terraform && terraform apply
 ```
 
@@ -33,7 +34,10 @@ bootstrap/
     versions.conf    Pinned versions + sha256 for every downloaded binary
     ssh-authorized-keys.example
 
-terraform/           Hetzner server declaration (references existing SSH keys)
+terraform/
+  main.tf            Hetzner server + Tailscale auth-key + device cleanup resources
+  cloud-init.yaml.tpl First-boot template that runs bootstrap.sh with vars injected
+  scripts/           tailscale-device.sh — shared by pre-flight + destroy cleanup
 features/devbox/     Spec files (*.feature.yaml) with ACIDs
 tests/e2e.bats       Post-bootstrap assertions — run on the host, not Mac
 ```
@@ -42,8 +46,8 @@ tests/e2e.bats       Post-bootstrap assertions — run on the host, not Mac
 
 | Layer | Owns |
 |---|---|
-| `terraform/` | Hetzner server resource — no OS config here |
-| `bootstrap/` | apt packages, users, SSH/firewall/network, runtimes, services |
+| `terraform/` | Hetzner server resource, Tailscale auth-key + device lifecycle, first-boot orchestration via cloud-init `user_data` — no OS state |
+| `bootstrap/` | apt packages, users, SSH/firewall/network, runtimes, services — all OS state |
 | dotfiles (your repo via yadm, set `DOTFILES_REPO`) | `.zshrc`, `.zshenv`, `.gitconfig`, nvim, tmux config |
 
 **Bootstrap must never write to files dotfiles owns.** Machine-specific shell entries go in `~/.zshrc.local` or `~/.zshenv.local` (not tracked by yadm).
@@ -95,8 +99,9 @@ sudo ./bootstrap/bootstrap.sh svc-ollama
 - **Role cache** — full default runs skip roles whose script (+ `common.sh`) hash is unchanged since last success. Cache lives in `/var/lib/bootstrap/cache/`. Explicit role args bypass it entirely. To force-re-run a specific role: `bash bootstrap.sh <role>` or `rm /var/lib/bootstrap/cache/<role>.sha256`.
 - **UFW ordering** — `31-firewall` must run after `30-tailscale` or port 22 closes before the overlay is up.
 - **No `curl | sh`** — all third-party binaries are verified with `download_verify <url> <dest> <sha256>` before execution. Add new tools to `versions.conf`.
-- **Bootstrap defaults**: `USERNAME` auto-detected from `$SUDO_USER` (override explicitly if needed), `TIMEZONE=America/Mexico_City`, `SKIP_FIREWALL=0`.
-- **Logs**: `/var/log/bootstrap/bootstrap-YYYYMMDD-HHMMSS.log` — check here first on failure.
+- **Bootstrap defaults**: `USERNAME` auto-detected from `$SUDO_USER` (override explicitly if needed), `TIMEZONE=America/Mexico_City`, `MACHINE_NAME=devbox`, `TS_TAG=tag:${MACHINE_NAME}`, `SKIP_FIREWALL=0`.
+- **Logs**: `/var/log/bootstrap/bootstrap-YYYYMMDD-HHMMSS.log` — check here first on failure. When provisioned via Terraform, also check `/var/log/cloud-init-output.log` for first-boot orchestration output.
+- **Cloud-init secrets policy**: `TS_AUTHKEY` is OK to embed in `user_data` (1-hour expiry). `USER_PASSWORD` is intentionally never embedded — Hetzner stores `user_data` for the lifetime of the server, so long-lived secrets must be set manually post-bootstrap.
 
 ## Editing guidelines
 
@@ -105,4 +110,5 @@ sudo ./bootstrap/bootstrap.sh svc-ollama
 - New services → `enable_service <name>` in the relevant role.
 - New firewall ports → `ufw allow <port>` in `31-firewall` or the relevant role.
 - Post-bootstrap state changes → update `tests/e2e.bats` to assert the new invariant.
-- Spec changes → update `features/devbox/*.feature.yaml` before changing code; reference full ACIDs in comments.
+- Spec changes → update `features/devbox/*.feature.yaml` before changing code; reference full ACIDs in comments. Run `/update-spec` to audit the feature file against the current code state.
+- Doc changes → run `/update-docs` to audit `CLAUDE.md` and `AGENTS.md` against the current role scripts after meaningful role changes.

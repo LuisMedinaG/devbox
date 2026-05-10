@@ -69,10 +69,10 @@ cd /root/projects/devbox && bash bootstrap/bootstrap.sh
 
 ## Hetzner setup
 
-Two ways to provision — pick one. Both end up with the same machine.
+Two ways to spin up a server — pick one. They are NOT equivalent:
 
-- **Terraform** (`terraform/`) — declarative, easy to recreate or vary.
-- **`hcloud` CLI** — one-shot commands, no state file.
+- **Terraform** (`terraform/`) — declarative, full provision + bootstrap + Tailscale join in a single `terraform apply`. Recommended.
+- **`hcloud` CLI** — creates a bare server only. You then SSH in and run `bootstrap.sh` manually with `TS_AUTHKEY=...` etc. Useful for one-off experiments.
 
 Get an API token first: <https://console.hetzner.com/projects/{project}/security/tokens>.
 
@@ -136,13 +136,14 @@ hcloud server delete   devbox      # permanent — back up first
 
 ### Recreating the box
 
-When you nuke and re-provision, two things in Tailscale don't auto-clean:
+When you re-provision via Terraform, both Tailscale concerns are handled
+automatically:
 
-1. The old `devbox` node entry in your tailnet — remove it manually at
-   <https://login.tailscale.com/admin/machines> if you want the hostname free
-   immediately (otherwise it expires).
-2. The previous auth key — generate a fresh one for the new box at
-   <https://login.tailscale.com/admin/settings/keys>.
+- The old device with the same hostname is removed by `null_resource.tailscale_preflight` before the new server joins (and again by `null_resource.tailscale_cleanup` on `terraform destroy`).
+- A fresh 1-hour auth key is generated per `terraform apply`.
+
+If you provisioned via the `hcloud` CLI (no Terraform state), you'll still need
+to remove the old node manually at <https://login.tailscale.com/admin/machines>.
 
 ---
 
@@ -162,7 +163,7 @@ Idempotent, safe to re-run. Each role lives in `bootstrap/roles/`:
 | 43 | caddy        | Caddy reverse proxy — auto-HTTPS, `/health` endpoint, `conf.d/` for service snippets |
 | 50 | shell        | zsh as default; `~/.zshrc.local` with machine PATH entries |
 | 60 | langs        | Node, Python, Bun, Rust, Go via mise — single sha256-pinned binary |
-| 70 | claude-code  | `npm install -g @anthropic-ai/claude-code` |
+| 70 | claude-code  | `npm install -g @anthropic-ai/claude-code` + claude-mem MCP server |
 | 80 | dotfiles     | yadm clone + bootstrap, runs as the interactive user |
 
 Logs at `/var/log/bootstrap/bootstrap-YYYYMMDD-HHMMSS.log`. Tail the latest:
@@ -275,12 +276,17 @@ restricts public port 22 to the Tailscale CGNAT range
 
 ### Auth key settings
 
+Terraform generates a fresh auth key per `terraform apply` with these
+properties (see `terraform/main.tf` `tailscale_tailnet_key.devbox`). If you
+mint one manually in the admin console, mirror them:
+
 | Setting | Value |
 |---|---|
 | Reusable     | **no** (single-use per server) |
 | Ephemeral    | **no** (devbox must persist after reboot) |
 | Pre-approved | **yes** |
-| Tags         | `tag:devbox` |
+| Expiry       | **1 hour** (only needed during the initial `tailscale up`) |
+| Tags         | `tag:${hostname}` (default `tag:devbox`) |
 
 ### Mobile (iOS)
 
