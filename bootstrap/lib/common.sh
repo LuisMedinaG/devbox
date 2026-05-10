@@ -41,7 +41,7 @@ apt_update_once() {
 }
 
 as_user() {
-  sudo -u "$USERNAME" -H bash -lc "$*"
+  sudo -u "$USERNAME" -H bash -lc "cd ~ && $*"
 }
 
 make_user_dir() {
