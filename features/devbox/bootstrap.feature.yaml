@@ -182,6 +182,8 @@ constraints:
       5: Roles run in declared order by default; an arbitrary subset can be passed as arguments to bootstrap.sh
       6: Docker-style role cache — full default runs skip roles whose script (+ common.sh) sha256 is unchanged since the last successful run; cache lives in /var/lib/bootstrap/cache/
       6-note: Cache is bypassed when explicit role arguments are passed; a failed role is never cached, so re-runs always retry it
+      6-1: Role-specific skip flags are folded into the cache hash so a flag change invalidates the cache — 20-hardening includes SKIP_SSH_HARDENING, 31-firewall includes SKIP_FIREWALL
+      6-1-note: Prevents a DEV_MODE=1 iteration from poisoning subsequent production runs by silently skipping hardening/firewall on cache hit
       7: Secrets (TS_AUTHKEY, USER_PASSWORD) are passed inline only to their consuming roles via env -u; never exported globally and never written to log files
       8: DEV_MODE=1 is an umbrella escape hatch — sets SKIP_FIREWALL=1 and SKIP_SSH_HARDENING=1 so public SSH stays usable during bootstrap iteration; defaults to 0 and emits a loud warning when enabled
       8-note: Exposed in Terraform as var.dev_mode (bool, default false), threaded through cloud-init
