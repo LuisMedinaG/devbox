@@ -323,7 +323,9 @@ Or enable permanently in `.claude/settings.json`:
 | `TS_AUTHKEY`      | _(empty)_              | Tailscale auth key for unattended connect (cleared after use) |
 | `DOTFILES_REPO`   | _(empty — skip)_       | yadm dotfiles repo URL; role 80 is skipped if unset |
 | `TIMEZONE`        | `America/Mexico_City`  | Host timezone |
-| `SKIP_FIREWALL`   | `0`                    | `1` skips ufw + fail2ban; **sshd hardening still runs** |
+| `SKIP_FIREWALL`   | `0`                    | `1` skips UFW activation; fail2ban + sshd hardening still run |
+| `SKIP_SSH_HARDENING` | `0`                 | `1` skips role 20's sshd drop-in; fail2ban still runs |
+| `DEV_MODE`        | `0`                    | `1` = umbrella escape hatch: sets `SKIP_FIREWALL=1` and `SKIP_SSH_HARDENING=1`. **Dev only.** |
 | `USER_PASSWORD`   | _(empty)_              | If set, role 10 runs `chpasswd` — eliminates manual `passwd` step |
 
 ---

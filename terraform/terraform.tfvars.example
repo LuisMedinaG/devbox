@@ -18,3 +18,7 @@ tailscale_tailnet             = "example.com"   # shown in the admin console
 # server_type   = "cx23"        # EU-only on some accounts; try cpx21 in ash/hil
 # location      = "nbg1"        # ash = closest US region to LATAM
 # image         = "ubuntu-24.04"
+
+# DANGER: only flip on during bootstrap iteration. Leaves public root SSH
+# and UFW disabled. fail2ban still runs.
+# dev_mode = true

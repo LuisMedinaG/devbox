@@ -10,15 +10,24 @@ apt_install fail2ban
 # Harden SSH via a drop-in. Ubuntu 24.04's stock sshd_config Includes
 # /etc/ssh/sshd_config.d/*.conf, so we don't have to mutate the upstream file.
 # bootstrap.HARDENING.1 bootstrap.HARDENING.2 bootstrap.HARDENING.3
-install -d -m 755 /etc/ssh/sshd_config.d
-cat >/etc/ssh/sshd_config.d/10-hardening.conf <<'EOF'
+# bootstrap.HARDENING.7 — SKIP_SSH_HARDENING escape hatch for dev iteration
+if [[ "${SKIP_SSH_HARDENING:-0}" = "1" ]]; then
+  warn "SKIP_SSH_HARDENING=1 — leaving sshd_config.d/10-hardening.conf unwritten."
+  warn "  Public root SSH stays open. DO NOT use this in production."
+  # Remove any previous hardening drop-in so re-running with the flag actually
+  # relaxes the config instead of silently keeping the prior state.
+  rm -f /etc/ssh/sshd_config.d/10-hardening.conf
+else
+  install -d -m 755 /etc/ssh/sshd_config.d
+  cat >/etc/ssh/sshd_config.d/10-hardening.conf <<'EOF'
 PermitRootLogin no
 PasswordAuthentication no
 PubkeyAuthentication yes
 KbdInteractiveAuthentication no
 X11Forwarding no
 EOF
-chmod 644 /etc/ssh/sshd_config.d/10-hardening.conf
+  chmod 644 /etc/ssh/sshd_config.d/10-hardening.conf
+fi
 
 # Privilege-separation dir is normally created by systemd-tmpfiles, but on
 # some images it goes missing, which makes `sshd -t` abort before it can

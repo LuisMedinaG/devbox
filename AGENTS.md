@@ -99,7 +99,8 @@ sudo ./bootstrap/bootstrap.sh svc-ollama
 - **Role cache** — full default runs skip roles whose script (+ `common.sh`) hash is unchanged since last success. Cache lives in `/var/lib/bootstrap/cache/`. Explicit role args bypass it entirely. To force-re-run a specific role: `bash bootstrap.sh <role>` or `rm /var/lib/bootstrap/cache/<role>.sha256`.
 - **UFW ordering** — `31-firewall` must run after `30-tailscale` or port 22 closes before the overlay is up.
 - **No `curl | sh`** — all third-party binaries are verified with `download_verify <url> <dest> <sha256>` before execution. Add new tools to `versions.conf`.
-- **Bootstrap defaults**: `USERNAME` auto-detected from `$SUDO_USER` (override explicitly if needed), `TIMEZONE=America/Mexico_City`, `MACHINE_NAME=devbox`, `TS_TAG=tag:${MACHINE_NAME}`, `SKIP_FIREWALL=0`.
+- **Bootstrap defaults**: `USERNAME` auto-detected from `$SUDO_USER` (override explicitly if needed), `TIMEZONE=America/Mexico_City`, `MACHINE_NAME=devbox`, `TS_TAG=tag:${MACHINE_NAME}`, `SKIP_FIREWALL=0`, `SKIP_SSH_HARDENING=0`, `DEV_MODE=0`.
+- **`DEV_MODE=1`** (or Terraform `dev_mode = true`): umbrella escape hatch that sets `SKIP_FIREWALL=1` and `SKIP_SSH_HARDENING=1` so public root SSH stays usable. fail2ban still runs. **Never leave on for a long-lived host** — Hetzner IPs are scanned within minutes.
 - **Logs**: `/var/log/bootstrap/bootstrap-YYYYMMDD-HHMMSS.log` — check here first on failure. When provisioned via Terraform, also check `/var/log/cloud-init-output.log` for first-boot orchestration output.
 - **Cloud-init secrets policy**: `TS_AUTHKEY` is OK to embed in `user_data` (1-hour expiry). `USER_PASSWORD` is intentionally never embedded — Hetzner stores `user_data` for the lifetime of the server, so long-lived secrets must be set manually post-bootstrap.
 

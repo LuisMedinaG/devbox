@@ -71,6 +71,19 @@ variable "dotfiles_repo" {
   default     = "https://github.com/LuisMedinaG/.dotfiles.git"
 }
 
+variable "dev_mode" {
+  description = <<-EOT
+    Iteration-friendly insecure mode. When true:
+      - role 20 skips the sshd hardening drop-in (root login + password auth left as Hetzner defaults)
+      - role 31 skips UFW activation
+    fail2ban still runs. Use only while debugging bootstrap from a machine
+    that can't reach the box over Tailscale. NEVER leave on for a long-lived
+    host — Hetzner public IPs are scanned within minutes.
+  EOT
+  type        = bool
+  default     = false
+}
+
 variable "tailscale_oauth_client_id" {
   description = <<-EOT
     Tailscale OAuth client ID. Create one at https://login.tailscale.com/admin/settings/oauth

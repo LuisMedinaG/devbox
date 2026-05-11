@@ -11,13 +11,24 @@ set -euo pipefail
 : "${MACHINE_NAME:=devbox}"        # tailnet hostname + sshd identity (role 30)
 : "${TS_TAG:=tag:${MACHINE_NAME}}" # tailscale ACL tag (role 30)
 : "${TS_AUTHKEY:=}"                # optional, prefills tailscale auth — NOT exported globally
-: "${SKIP_FIREWALL:=${SKIP_UFW:-0}}"  # set to 1 to skip ufw only; fail2ban + sshd hardening still run
+: "${DEV_MODE:=0}"                 # 1 = keep public SSH usable during dev iteration (sets SKIP_* below)
+: "${SKIP_FIREWALL:=${SKIP_UFW:-0}}"      # 1 = skip ufw only; fail2ban + sshd hardening still run
+: "${SKIP_SSH_HARDENING:=0}"       # 1 = skip role 20's sshd drop-in; fail2ban still runs
 : "${USER_PASSWORD:=}"             # optional — if set, role 10 runs chpasswd; otherwise set manually
+
+# DEV_MODE is an umbrella: implies SKIP_FIREWALL=1 and SKIP_SSH_HARDENING=1.
+# Use only while iterating on bootstrap from a Mac that can't reach the box
+# over Tailscale yet. NEVER leave on for a long-lived host.
+if [[ "$DEV_MODE" = "1" ]]; then
+  SKIP_FIREWALL=1
+  SKIP_SSH_HARDENING=1
+  printf '[warn] DEV_MODE=1 — sshd hardening and UFW are SKIPPED. Do not use in production.\n' >&2
+fi
 # TS_AUTHKEY and USER_PASSWORD are intentionally excluded from this export list.
 # Each is passed inline only to its consuming role to keep secrets out of all
 # other child process environments.
 USER_HOME="/home/$USERNAME"
-export USERNAME TIMEZONE MACHINE_NAME TS_TAG SKIP_FIREWALL USER_HOME
+export USERNAME TIMEZONE MACHINE_NAME TS_TAG SKIP_FIREWALL SKIP_SSH_HARDENING DEV_MODE USER_HOME
 
 # Capture before the loop — USER_PASSWORD is unset after role 10 runs.
 [[ -n "$USER_PASSWORD" ]] && _passwd_provided=1 || _passwd_provided=""

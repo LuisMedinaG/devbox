@@ -22,4 +22,5 @@ runcmd:
     TS_TAG='${ts_tag}' \
     TS_AUTHKEY='${ts_authkey}' \
     DOTFILES_REPO='${dotfiles_repo}' \
+    DEV_MODE='${dev_mode}' \
     bash bootstrap/bootstrap.sh

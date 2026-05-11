@@ -47,6 +47,7 @@ resource "hcloud_server" "devbox" {
     ts_tag        = local.ts_tag
     ts_authkey    = tailscale_tailnet_key.devbox.key
     dotfiles_repo = var.dotfiles_repo
+    dev_mode      = var.dev_mode ? "1" : "0"
   })
 
   # The Tailscale auth key regenerates whenever its resource is replaced
