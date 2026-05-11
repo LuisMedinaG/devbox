@@ -30,6 +30,22 @@ write_files:
       export TS_AUTHKEY='${ts_authkey}'
       export DOTFILES_REPO='${dotfiles_repo}'
       export DEV_MODE='${dev_mode}'
+  - path: /usr/local/bin/devbox-bootstrap
+    permissions: '0755'
+    owner: root:root
+    content: |
+      #!/usr/bin/env bash
+      set -euo pipefail
+      # shellcheck disable=SC1091
+      source /etc/devbox-bootstrap.env
+      cd /root/projects/devbox
+      if bash bootstrap/bootstrap.sh; then
+        echo "ok" > /var/log/bootstrap/STATE
+      else
+        rc=$?
+        echo "failed:$rc" > /var/log/bootstrap/STATE
+        exit "$rc"
+      fi
   - path: /usr/local/bin/devbox-rerun
     permissions: '0755'
     owner: root:root
@@ -49,15 +65,4 @@ runcmd:
   - mkdir -p /var/log/bootstrap /root/projects
   - echo "running" > /var/log/bootstrap/STATE
   - git clone ${devbox_repo} /root/projects/devbox
-  - |
-    set -o pipefail
-    cd /root/projects/devbox
-    # shellcheck disable=SC1091
-    source /etc/devbox-bootstrap.env
-    if bash bootstrap/bootstrap.sh; then
-      echo "ok" > /var/log/bootstrap/STATE
-    else
-      rc=$?
-      echo "failed:$rc" > /var/log/bootstrap/STATE
-      exit "$rc"
-    fi
+  - bash /usr/local/bin/devbox-bootstrap
