@@ -33,6 +33,16 @@ _clone_dotfiles() {
   sudo -u "$USERNAME" -H env GIT_TERMINAL_PROMPT=0 yadm clone --no-bootstrap -- "$1"
 }
 
+# Earlier roles (e.g. 50-shell) drop placeholder files in $HOME like an empty
+# .zshrc. yadm clone leaves these alone and reports them as local differences,
+# which then makes `yadm pull --rebase` (run by the dotfiles bootstrap script)
+# fail with "cannot pull with rebase: You have unstaged changes". For a fresh
+# provision the dotfiles version always wins, so force-overwrite them here.
+_reset_local_diffs() {
+  as_user 'yadm checkout -- "$HOME" 2>/dev/null || true'
+  as_user 'yadm reset --hard HEAD >/dev/null 2>&1 || true'
+}
+
 _run_yadm_bootstrap() {
   # yadm refuses to run the bootstrap script unless it's executable.
   # The dotfiles repo may track it without the +x bit, so ensure it here.
@@ -76,6 +86,7 @@ log "Cloning dotfiles via HTTPS ..."
 if sudo -u "$USERNAME" -H env GIT_TERMINAL_PROMPT=0 \
      yadm clone --no-bootstrap -- "$HTTPS_REPO" 2>/dev/null; then
   log "Dotfiles cloned successfully."
+  _reset_local_diffs
   _run_yadm_bootstrap
   exit 0
 fi
@@ -127,6 +138,7 @@ log "GitHub SSH: OK"
 
 if _clone_dotfiles "$DOTFILES_REPO"; then
   log "Dotfiles cloned successfully."
+  _reset_local_diffs
 else
   warn "yadm clone failed — verify SSH access, then re-run: $RERUN_CMD"
   exit 0
