@@ -10,6 +10,10 @@ Personal cloud dev box on Hetzner (Ubuntu 24.04). Bootstrap scripts provision a 
 sudo ./bootstrap/bootstrap.sh
 sudo USERNAME=alice ./bootstrap/bootstrap.sh   # explicit override
 
+# Run with a named profile (see PROFILES in bootstrap.sh)
+sudo PROFILE=base ./bootstrap/bootstrap.sh     # minimal: system + user + hardening + tailscale + firewall
+sudo PROFILE=media ./bootstrap/bootstrap.sh    # base + Caddy reverse proxy
+
 # Run a single role
 sudo ./bootstrap/bootstrap.sh 40-dev-tools
 
@@ -42,6 +46,20 @@ terraform/
 features/devbox/     Spec files (*.feature.yaml) with ACIDs
 tests/e2e.bats       Post-bootstrap assertions — run on the host, not Mac
 ```
+
+## Profiles
+
+Profiles are named role sets defined in `bootstrap.sh` as the `PROFILES` associative array.
+Default: `devbox`. Explicit role args bypass the profile entirely.
+
+| Profile | Roles | Use case |
+|---|---|---|
+| `devbox` | 00 → 80 (full stack) | Default — dev environment with runtimes, Claude Code, dotfiles |
+| `base` | 00, 10, 20, 30, 31 | Minimal — OS, user, hardening, Tailscale, firewall |
+| `media` | base + 43-caddy | Base + Caddy reverse proxy for Plex/Jellyfin/etc. |
+
+To add a profile, add an entry to the `PROFILES` map in `bootstrap.sh`.
+New profiles should reference existing roles — don't create roles that duplicate another profile's purpose.
 
 ## Division of responsibility
 

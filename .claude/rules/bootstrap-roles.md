@@ -31,3 +31,9 @@ If a helper fails, log the error and exit with a non-zero status. For example, i
 
 Bootstrap must never write to files dotfiles owns: `.zshrc`, `.zshenv`, `.gitconfig`.
 Machine-specific shell entries go in `~/.zshrc.local` or `~/.zshenv.local`.
+
+## Profiles
+
+Named role sets in `bootstrap.sh` (`PROFILES` map). Default: `devbox`.
+Set `PROFILE=<name>` to select a lightweight set. Explicit role args bypass profiles.
+To add a profile, add an entry to the `PROFILES` map — reference existing roles only.
