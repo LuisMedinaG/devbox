@@ -85,7 +85,7 @@ New profiles should reference existing roles — don't create roles that duplica
 | `43-caddy` | Caddy reverse proxy — installs from official apt repo, base Caddyfile with `/health` endpoint, `conf.d/` include pattern for service snippets, opens ports 80 + 443 |
 | `50-shell` | set zsh as default; write `~/.zshrc.local` with machine PATH entries |
 | `60-langs` | Node (fnm), uv, Bun, Rust, Go — all sha256-pinned via `versions.conf` |
-| `70-claude-code` | `npm install -g @anthropic-ai/claude-code` + claude-mem MCP |
+| `70-claude-code` | `npm install -g @anthropic-ai/claude-code` + claude-mem MCP (non-interactive install with recommended defaults; worker started afterwards) |
 | `80-dotfiles` | yadm clone + bootstrap as `$USERNAME`; skipped if `DOTFILES_REPO` is unset |
 
 ### Optional service roles (`svc-*`)
@@ -122,6 +122,7 @@ sudo ./bootstrap/bootstrap.sh svc-ollama
 - **`DEV_MODE=1`** (or Terraform `dev_mode = true`): umbrella escape hatch that sets `SKIP_FIREWALL=1` and `SKIP_SSH_HARDENING=1` so public root SSH stays usable. fail2ban still runs. **Never leave on for a long-lived host** — Hetzner IPs are scanned within minutes.
 - **Logs**: `/var/log/bootstrap/bootstrap-YYYYMMDD-HHMMSS.log` — check here first on failure. When provisioned via Terraform, also check `/var/log/cloud-init-output.log` for first-boot orchestration output.
 - **Cloud-init secrets policy**: `TS_AUTHKEY` is OK to embed in `user_data` (1-hour expiry). `USER_PASSWORD` is intentionally never embedded — Hetzner stores `user_data` for the lifetime of the server, so long-lived secrets must be set manually post-bootstrap.
+- **claude-mem non-interactive install** (role 70): stdin is redirected from `/dev/null` so the installer runs silently. Defaults picked (mirror of claude-mem's `!isTTY` branch): ide=`claude-code`, runtime=`worker`, provider=`claude`, auth=`subscription`, model=`claude-haiku-4-5-20251001`. Worker is started explicitly after install. Subscription auth needs a logged-in `claude` CLI on the host — first login is a manual post-bootstrap step. To override, pass `--ide` / `--provider` / `--model` flags or set `CLAUDE_MEM_CLAUDE_AUTH_METHOD` / `ANTHROPIC_API_KEY` — do NOT remove the stdin redirect.
 
 ## Editing guidelines
 
