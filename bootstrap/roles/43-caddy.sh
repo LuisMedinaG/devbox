@@ -26,12 +26,14 @@ fi
 # bootstrap.CADDY.2 bootstrap.CADDY.3
 mkdir -p /etc/caddy/conf.d
 if ! grep -q "bootstrap.CADDY" /etc/caddy/Caddyfile 2>/dev/null; then
-  cat > /etc/caddy/Caddyfile <<'EOF'
-# bootstrap.CADDY
-{
-    email betousky01@gmail.com
-}
-
+  {
+    echo "# bootstrap.CADDY"
+    if [[ -n "${CADDY_EMAIL:-}" ]]; then
+      echo "{"
+      echo "    email ${CADDY_EMAIL}"
+      echo "}"
+    fi
+    cat <<'EOF'
 :80 {
     handle /health {
         respond "OK" 200
@@ -40,6 +42,7 @@ if ! grep -q "bootstrap.CADDY" /etc/caddy/Caddyfile 2>/dev/null; then
 
 import /etc/caddy/conf.d/*.conf
 EOF
+  } > /etc/caddy/Caddyfile
   systemctl is-active --quiet caddy 2>/dev/null && systemctl reload caddy || true
 fi
 

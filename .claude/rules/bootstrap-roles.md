@@ -9,7 +9,8 @@ All roles must be safe to re-run. Use the helpers from `bootstrap/lib/common.sh`
 | Helper | Use for |
 |---|---|
 | `ensure_line <line> <file>` | Append a line only if absent |
-| `ensure_kv <key> <value> <file>` | Set a key-value directive idempotently |
+| `source_versions` | Load pinned versions from config/versions.conf (idempotent) |
+| `detect_arch [TOOL]` | Detect CPU arch; with prefix, validates & exports arch-specific SHA256 |
 | `apt_install <pkg...>` | Install packages (DEBIAN_FRONTEND=noninteractive) |
 | `apt_update_once` | Run `apt-get update` at most once per hour |
 | `download_verify <url> <dest> <sha256>` | Download + verify — no curl\|sh |

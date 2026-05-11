@@ -26,7 +26,8 @@ cd terraform && terraform apply
 ```
 bootstrap/
   bootstrap.sh       Entry point — runs roles in order or a named subset
-  lib/common.sh      Helpers: log/warn/die, ensure_line, ensure_kv,
+  lib/common.sh      Helpers: log/warn/die, ensure_line,
+                     source_versions, detect_arch,
                      enable_service, reload_sshd, as_user, apt_install,
                      apt_update_once, download_verify
   roles/             One script per role, executed in filename order
@@ -95,7 +96,7 @@ sudo ./bootstrap/bootstrap.sh svc-ollama
 
 ## Constraints
 
-- **All roles are idempotent** — safe to re-run. Use `ensure_line`, `ensure_kv`, and `command -v` guards, never raw appends.
+- **All roles are idempotent** — safe to re-run. Use `ensure_line`, `command -v` guards, never raw appends.
 - **Role cache** — full default runs skip roles whose script (+ `common.sh`) hash is unchanged since last success. Cache lives in `/var/lib/bootstrap/cache/`. Explicit role args bypass it entirely. To force-re-run a specific role: `bash bootstrap.sh <role>` or `rm /var/lib/bootstrap/cache/<role>.sha256`.
 - **UFW ordering** — `31-firewall` must run after `30-tailscale` or port 22 closes before the overlay is up.
 - **No `curl | sh`** — all third-party binaries are verified with `download_verify <url> <dest> <sha256>` before execution. Add new tools to `versions.conf`.

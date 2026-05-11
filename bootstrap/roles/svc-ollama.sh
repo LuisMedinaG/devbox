@@ -6,22 +6,10 @@
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
-VERSIONS_CONF="$SCRIPT_DIR/config/versions.conf"
-[[ -f "$VERSIONS_CONF" ]] || die "config/versions.conf not found."
-# shellcheck source=/dev/null
-source "$VERSIONS_CONF"
+source_versions
+detect_arch OLLAMA
 
-: "${OLLAMA_VERSION:?Set OLLAMA_VERSION in config/versions.conf}"
-: "${OLLAMA_SHA256_AMD64:?Set OLLAMA_SHA256_AMD64 in config/versions.conf}"
-: "${OLLAMA_SHA256_ARM64:?Set OLLAMA_SHA256_ARM64 in config/versions.conf}"
-
-case "$(dpkg --print-architecture)" in
-  amd64) OLLAMA_SHA256="$OLLAMA_SHA256_AMD64" ;;
-  arm64) OLLAMA_SHA256="$OLLAMA_SHA256_ARM64" ;;
-  *) die "Unsupported architecture: $(dpkg --print-architecture)" ;;
-esac
-
-OLLAMA_URL="https://github.com/ollama/ollama/releases/download/v${OLLAMA_VERSION}/ollama-linux-$(dpkg --print-architecture).tar.zst"
+OLLAMA_URL="https://github.com/ollama/ollama/releases/download/v${OLLAMA_VERSION}/ollama-linux-${ARCH_FULL}.tar.zst"
 
 # bootstrap.OLLAMA.1 — install binary from verified archive
 if ! command -v ollama >/dev/null 2>&1; then
