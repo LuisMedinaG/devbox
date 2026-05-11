@@ -51,12 +51,23 @@ log "Logging to $LOG_FILE"
 
 # ── Role cache (Docker-style layer skipping) ─────────────────────────────────
 # Active only for full default runs (no explicit role args).
-# Hash covers both the role script and common.sh so changes to either invalidate it.
+# Hash covers the role script, common.sh, and role-specific skip flags so that
+# changing flag values (e.g. DEV_MODE=1 → production) invalidates the cache.
 # A role's cache is written only after it exits 0 — failed roles always re-run.
 CACHE_DIR="/var/lib/bootstrap/cache"
 mkdir -p "$CACHE_DIR"
 
-_role_hash()        { cat "$SCRIPT_DIR/roles/${1}.sh" "$SCRIPT_DIR/lib/common.sh" | sha256sum | cut -d' ' -f1; }
+_role_hash() {
+  local hash_input
+  hash_input="$(cat "$SCRIPT_DIR/roles/${1}.sh" "$SCRIPT_DIR/lib/common.sh")"
+  # Include skip flags in the hash so changing flag values invalidates the cache.
+  # This prevents a DEV_MODE=1 run from caching a role that should re-run in production.
+  case "$1" in
+    20-hardening) hash_input+="${SKIP_SSH_HARDENING:-0}" ;;
+    31-firewall)  hash_input+="${SKIP_FIREWALL:-0}" ;;
+  esac
+  printf '%s' "$hash_input" | sha256sum | cut -d' ' -f1
+}
 _role_cached()      { local c="$CACHE_DIR/${1}.sha256"; [[ -f "$c" ]] && [[ "$(cat "$c")" = "$(_role_hash "$1")" ]]; }
 _role_cache_write() { _role_hash "$1" > "$CACHE_DIR/${1}.sha256"; }
 
