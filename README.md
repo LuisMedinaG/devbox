@@ -69,24 +69,69 @@ Cloud-init creates three debug surfaces on the box:
 | `/etc/devbox-bootstrap.env` (root-only) | Exact env vars cloud-init injected — re-sourceable |
 | `/usr/local/bin/devbox-rerun [role...]` | Re-runs bootstrap with the same env; pulls latest first |
 
-Common recipes:
+#### Quick health check
 
 ```bash
-# Did bootstrap finish?
+# Is bootstrap still running, or did it finish?
 ssh root@<ip> cat /var/log/bootstrap/STATE
+
+# Is cloud-init itself still running?
+ssh root@<ip> cloud-init status
 
 # What env was injected?
 ssh root@<ip> cat /etc/devbox-bootstrap.env
+```
 
+#### Log files
+
+| Log | When to check |
+|---|---|
+| `/var/log/cloud-init-output.log` | First boot — cloud-init orchestration, git clone, initial bootstrap run |
+| `/var/log/bootstrap/bootstrap-YYYYMMDD-HHMMSS.log` | Any bootstrap run — full role-by-role output with timestamps |
+| `/var/log/bootstrap/STATE` | Quick health without parsing logs |
+
+```bash
+# Tail the latest bootstrap log
+ssh root@<ip> 'tail -f /var/log/bootstrap/bootstrap-$(date +%Y%m%d)*.log'
+
+# Search for errors in the latest log
+ssh root@<ip> 'grep -i "fail\|error" /var/log/bootstrap/bootstrap-$(date +%Y%m%d)*.log | tail -20'
+```
+
+#### Common failure scenarios
+
+| Symptom | Likely cause | Fix |
+|---|---|---|
+| `STATE` stuck on `running` for >15 min | Cloud-init still running, or hung on a role | `ssh root@<ip> cloud-init status` — if `done`, check bootstrap log; if `running`, wait or `ssh root@<ip> ps aux \| grep bootstrap` |
+| `STATE` = `failed:<rc>` | A role exited non-zero | Check bootstrap log for the failing role; fix and `devbox-rerun` |
+| `tailscale up` fails | Auth key expired (1 h) or network issue | Generate a new key in Tailscale admin; `ssh root@<ip> devbox-rerun 30-tailscale` |
+| Role 80 (dotfiles) fails | SSH key not added to GitHub, or repo is private | Add the printed pubkey to GitHub; re-run `devbox-rerun 80-dotfiles` |
+| Role 60 (langs) fails | Network timeout downloading mise | Retry with `devbox-rerun 60-langs` — downloads are cached on success |
+| Can't SSH after bootstrap | Tailscale not connected, or UFW blocked port 22 | Connect via Hetzner console; `ssh root@<ip> devbox-rerun 30-tailscale 31-firewall` |
+| `devbox-rerun` fails git pull | Local tree has uncommitted changes | `ssh root@<ip> 'cd /root/projects/devbox && git stash && devbox-rerun'` |
+
+#### Recovery workflow
+
+```bash
 # Re-run full bootstrap (role cache skips completed roles)
 ssh root@<ip> devbox-rerun
 
 # Re-run just one role after fixing it
 ssh root@<ip> devbox-rerun 80-dotfiles
 
-# Force a clean re-run of a specific role
+# Force a clean re-run of a specific role (bypasses cache)
 ssh root@<ip> 'rm /var/lib/bootstrap/cache/80-dotfiles.sha256 && devbox-rerun 80-dotfiles'
+
+# Edit injected env and re-run (e.g. change DOTFILES_REPO)
+ssh root@<ip> 'vim /etc/devbox-bootstrap.env && devbox-rerun'
+
+# Run a role that wasn't in the original profile
+ssh root@<ip> 'source /etc/devbox-bootstrap.env && cd /root/projects/devbox && bash bootstrap/bootstrap.sh svc-ollama'
 ```
+
+#### When to destroy and recreate
+
+If bootstrap fails on role 00 (system) or role 10 (user), it's usually faster to `terraform destroy && terraform apply` than to debug. These roles run first — if they fail, the box is in a partially-configured state. For failures in roles 30+, `devbox-rerun` is almost always the right path.
 
 ---
 

@@ -125,6 +125,11 @@ sudo ./bootstrap/bootstrap.sh svc-ollama
   - `/var/log/bootstrap/STATE` — single-line health: `running` → `ok` or `failed:<rc>`.
   - `/etc/devbox-bootstrap.env` (root-only) — exact env vars cloud-init injected; re-sourceable.
   - `/usr/local/bin/devbox-rerun [role...]` — re-runs bootstrap with the same env vars; pulls latest first. Pass role names for a single-role re-run.
+- **Troubleshooting flow**:
+  1. Check `STATE` — if `running` and >15 min, check `cloud-init status`; if `failed:<rc>`, read the bootstrap log for the failing role.
+  2. Read the latest bootstrap log: `tail -100 /var/log/bootstrap/bootstrap-$(date +%Y%m%d)*.log`.
+  3. Fix the role script or env, then `devbox-rerun <role>` (bypasses cache for explicit roles).
+  4. If roles 00 or 10 fail, prefer `terraform destroy && apply` — the box is in a partially-configured state.
 - **Cloud-init secrets policy**: `TS_AUTHKEY` is OK to embed in `user_data` (1-hour expiry). `USER_PASSWORD` is intentionally never embedded — Hetzner stores `user_data` for the lifetime of the server, so long-lived secrets must be set manually post-bootstrap.
 - **claude-mem non-interactive install** (role 70): stdin is redirected from `/dev/null` so the installer runs silently. Defaults picked (mirror of claude-mem's `!isTTY` branch): ide=`claude-code`, runtime=`worker`, provider=`claude`, auth=`subscription`, model=`claude-haiku-4-5-20251001`. Worker is started explicitly after install. Subscription auth needs a logged-in `claude` CLI on the host — first login is a manual post-bootstrap step. To override, pass `--ide` / `--provider` / `--model` flags or set `CLAUDE_MEM_CLAUDE_AUTH_METHOD` / `ANTHROPIC_API_KEY` — do NOT remove the stdin redirect.
 
