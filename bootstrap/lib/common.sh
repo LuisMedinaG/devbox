@@ -12,20 +12,38 @@ ensure_line() {
   grep -qxF -- "$line" "$file" 2>/dev/null || echo "$line" >> "$file"
 }
 
-# Replace or append a `key value` style directive in a config file.
-# Uses \x01 as the sed delimiter so values containing |, /, # etc. are safe.
-# Escapes both sed-replacement specials (\, &) and shell-quote-sensitive
-# characters ($, `, ") for defense in depth, even though bash variable
-# expansion does not re-interpret expanded contents.
-ensure_kv() {
-  local key="$1" value="$2" file="$3" sep="${4:- }"
-  local escaped_value
-  escaped_value=$(printf '%s' "$value" | sed 's/[&\]/\\&/g')
-  if grep -Eq "^[#[:space:]]*${key}\b" "$file" 2>/dev/null; then
-    sed -i -E "s$(printf '\x01')^[#[:space:]]*(${key})\b.*$(printf '\x01')\1${sep}${escaped_value}$(printf '\x01')" "$file"
-  else
-    echo "${key}${sep}${value}" >> "$file"
-  fi
+# Load pinned versions from config/versions.conf (idempotent across roles).
+source_versions() {
+  [[ -n "${_VERSIONS_SOURCED:-}" ]] && return
+  local conf="$SCRIPT_DIR/config/versions.conf"
+  [[ -f "$conf" ]] || die "config/versions.conf not found."
+  # shellcheck source=/dev/null
+  source "$conf"
+  _VERSIONS_SOURCED=1
+}
+
+# Detect host architecture. Sets ARCH (short) and ARCH_FULL (dpkg-native).
+# Optionally resolves and validates arch-specific SHA256 for a tool prefix.
+#   detect_arch              # sets ARCH, ARCH_FULL
+#   detect_arch OLLAMA       # also exports OLLAMA_SHA256, validates OLLAMA_VERSION + _SHA256_*
+detect_arch() {
+  ARCH_FULL="$(dpkg --print-architecture)"
+  case "$ARCH_FULL" in
+    amd64) ARCH=x64 ;;
+    arm64) ARCH=arm64 ;;
+    *) die "Unsupported architecture: $ARCH_FULL" ;;
+  esac
+
+  local prefix="${1:-}"
+  [[ -z "$prefix" ]] && return
+
+  local sha256_var="${prefix}_SHA256_${ARCH_FULL^^}"
+  [[ -n "${!sha256_var:-}" ]] || die "${sha256_var} is empty — add to config/versions.conf"
+  printf -v "${prefix}_SHA256" '%s' "${!sha256_var}"
+  export "${prefix}_SHA256"
+
+  local version_var="${prefix}_VERSION"
+  [[ -n "${!version_var:-}" ]] || die "${version_var} is empty — add to config/versions.conf"
 }
 
 apt_install() {

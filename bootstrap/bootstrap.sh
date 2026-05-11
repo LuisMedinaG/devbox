@@ -14,7 +14,19 @@ set -euo pipefail
 : "${DEV_MODE:=0}"                 # 1 = keep public SSH usable during dev iteration (sets SKIP_* below)
 : "${SKIP_FIREWALL:=${SKIP_UFW:-0}}"      # 1 = skip ufw only; fail2ban + sshd hardening still run
 : "${SKIP_SSH_HARDENING:=0}"       # 1 = skip role 20's sshd drop-in; fail2ban still runs
+: "${DOTFILES_PROFILE:=linuxbox}"  # yadm bootstrap profile selection (role 80): personal|work|linuxbox
 : "${USER_PASSWORD:=}"             # optional — if set, role 10 runs chpasswd; otherwise set manually
+: "${PROFILE:=devbox}"              # named role set to run (see PROFILES map below)
+: "${CADDY_EMAIL:=}"                # Let's Encrypt contact; empty = skip email block in Caddyfile
+
+# Named role sets. Default profile is "devbox" (full stack).
+# Set PROFILE=<name> to select a lightweight set:
+#   PROFILE=base  → minimal OS + user + hardening + Tailscale + firewall
+#   PROFILE=media → base + Caddy reverse proxy
+declare -A PROFILES
+PROFILES[devbox]="00-system 10-user 20-hardening 30-tailscale 31-firewall 40-dev-tools 42-docker 43-caddy 50-shell 60-langs 70-claude-code 80-dotfiles"
+PROFILES[base]="00-system 10-user 20-hardening 30-tailscale 31-firewall"
+PROFILES[media]="00-system 10-user 20-hardening 30-tailscale 31-firewall 43-caddy"
 
 # DEV_MODE is an umbrella: implies SKIP_FIREWALL=1 and SKIP_SSH_HARDENING=1.
 # Use only while iterating on bootstrap from a Mac that can't reach the box
@@ -28,7 +40,7 @@ fi
 # Each is passed inline only to its consuming role to keep secrets out of all
 # other child process environments.
 USER_HOME="/home/$USERNAME"
-export USERNAME TIMEZONE MACHINE_NAME TS_TAG SKIP_FIREWALL SKIP_SSH_HARDENING DEV_MODE USER_HOME
+export USERNAME TIMEZONE MACHINE_NAME TS_TAG SKIP_FIREWALL SKIP_SSH_HARDENING DEV_MODE DOTFILES_PROFILE USER_HOME CADDY_EMAIL
 
 # Capture before the loop — USER_PASSWORD is unset after role 10 runs.
 [[ -n "$USER_PASSWORD" ]] && _passwd_provided=1 || _passwd_provided=""
@@ -71,26 +83,18 @@ _role_hash() {
 _role_cached()      { local c="$CACHE_DIR/${1}.sha256"; [[ -f "$c" ]] && [[ "$(cat "$c")" = "$(_role_hash "$1")" ]]; }
 _role_cache_write() { _role_hash "$1" > "$CACHE_DIR/${1}.sha256"; }
 
-ROLES=(
-  00-system
-  10-user
-  20-hardening    # sshd config + fail2ban only — no UFW, public SSH stays open
-  30-tailscale    # connect Tailscale overlay
-  31-firewall     # UFW — runs after Tailscale so port 22 is never closed prematurely
-  40-dev-tools
-  42-docker       # rootless Podman
-  43-caddy        # Caddy reverse proxy — HTTP/HTTPS foundation for services
-  50-shell
-  60-langs
-  70-claude-code  # npm install -g @anthropic-ai/claude-code
-  80-dotfiles     # yadm clone + bootstrap (runs as $USERNAME, requires GitHub SSH)
-)
-
+# Resolve role list: explicit args take precedence over the named profile.
 # Cache is disabled when explicit roles are passed — those always run unconditionally.
-[[ $# -gt 0 ]] && _CACHE_ENABLED=0 || _CACHE_ENABLED=1
-
 if [[ $# -gt 0 ]]; then
   ROLES=("$@")
+  _CACHE_ENABLED=0
+else
+  if [[ -z "${PROFILES[$PROFILE]:-}" ]]; then
+    log "Available profiles: ${!PROFILES[*]}"
+    die "Unknown profile: $PROFILE. Set PROFILE=<name> or pass explicit role names."
+  fi
+  IFS=' ' read -ra ROLES <<< "${PROFILES[$PROFILE]}"
+  _CACHE_ENABLED=1
 fi
 
 for role in "${ROLES[@]}"; do

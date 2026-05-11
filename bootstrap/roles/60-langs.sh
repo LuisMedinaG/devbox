@@ -5,22 +5,9 @@
 set -euo pipefail
 source "$SCRIPT_DIR/lib/common.sh"
 
-VERSIONS_CONF="$SCRIPT_DIR/config/versions.conf"
-[[ -f "$VERSIONS_CONF" ]] || die "config/versions.conf not found."
-# shellcheck source=/dev/null
-source "$VERSIONS_CONF"
-
-# bootstrap.LANGS.6
-: "${MISE_VERSION:?Set MISE_VERSION in config/versions.conf}"
-: "${MISE_SHA256_AMD64:?Set MISE_SHA256_AMD64 in config/versions.conf}"
-: "${MISE_SHA256_ARM64:?Set MISE_SHA256_ARM64 in config/versions.conf}"
-
-# bootstrap.LANGS.8
-case "$(dpkg --print-architecture)" in
-  amd64) ARCH=x64;   MISE_SHA256="$MISE_SHA256_AMD64" ;;
-  arm64) ARCH=arm64; MISE_SHA256="$MISE_SHA256_ARM64" ;;
-  *) die "Unsupported architecture: $(dpkg --print-architecture)" ;;
-esac
+# bootstrap.LANGS.6 bootstrap.LANGS.8
+source_versions
+detect_arch MISE
 
 # bootstrap.LANGS.7
 if ! command -v mise >/dev/null 2>&1; then

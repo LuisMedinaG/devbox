@@ -37,8 +37,26 @@ _run_yadm_bootstrap() {
   # yadm refuses to run the bootstrap script unless it's executable.
   # The dotfiles repo may track it without the +x bit, so ensure it here.
   as_user '[[ -f "$HOME/.config/yadm/bootstrap" ]] && chmod +x "$HOME/.config/yadm/bootstrap"' || true
-  if as_user 'yadm bootstrap'; then
-    log "Dotfiles bootstrap complete."
+
+  # DOTFILES_PROFILE: pick which yadm bootstrap profile to run. Default
+  # "linuxbox" is correct for the Hetzner devbox. The value is exported AND
+  # piped as a numeric menu choice so it works against two styles of dotfiles
+  # bootstrap script:
+  #   1. Scripts that read $DOTFILES_PROFILE directly (preferred — the env
+  #      var is already in the environment).
+  #   2. Scripts that prompt interactively with "Profile [1/2/3]:" — the
+  #      menu_choice number is piped on stdin.
+  : "${DOTFILES_PROFILE:=linuxbox}"
+  local menu_choice
+  case "$DOTFILES_PROFILE" in
+    personal) menu_choice=1 ;;
+    work)     menu_choice=2 ;;
+    linuxbox) menu_choice=3 ;;
+    *) die "Unknown DOTFILES_PROFILE: $DOTFILES_PROFILE (expected personal|work|linuxbox)" ;;
+  esac
+
+  if as_user "DOTFILES_PROFILE='$DOTFILES_PROFILE' bash -lc 'echo $menu_choice | yadm bootstrap'"; then
+    log "Dotfiles bootstrap complete (profile: $DOTFILES_PROFILE)."
   else
     warn "yadm bootstrap had errors — review output above."
   fi
