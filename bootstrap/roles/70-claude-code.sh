@@ -14,8 +14,20 @@ fi
 PLUGIN_CACHE_DIR="$USER_HOME/.claude/plugins/cache/thedotmack/claude-mem"
 if [ ! -d "$PLUGIN_CACHE_DIR" ]; then
   log "Installing claude-mem MCP server ..."
-  as_user 'mise exec node -- npx --yes claude-mem install'
+  # claude-mem detects interactivity via process.stdin.isTTY. When non-TTY it
+  # silently picks recommended defaults: ide=claude-code, runtime=worker,
+  # provider=claude, auth=subscription, model=claude-haiku-4-5-20251001.
+  # We force </dev/null so the install stays non-interactive even when a
+  # human is running bootstrap manually over an SSH TTY.
+  # --no-auto-start: defensive — non-TTY already skips worker spawn; we start
+  # it explicitly below so the worker is up after bootstrap finishes.
+  as_user 'mise exec node -- npx --yes claude-mem install --no-auto-start </dev/null'
   log "claude-mem installed."
 else
   log "claude-mem already installed — skipping."
 fi
+
+# Start the worker explicitly. The installer skips auto-start in non-TTY mode,
+# so do it here unconditionally — idempotent (no-op if already running).
+as_user 'mise exec node -- npx --yes claude-mem start </dev/null' || \
+  warn "claude-mem worker failed to start — run 'npx claude-mem start' manually after first login."
