@@ -298,7 +298,52 @@ cellular.
 
 ## Claude Code
 
-Installed by role 70. Use the built-in sandbox:
+Installed by role 70 alongside the [claude-mem](https://github.com/thedotmack/claude-mem) MCP server.
+
+### claude-mem install — non-interactive contract
+
+Role 70 redirects stdin from `/dev/null` so the installer runs silently
+under both cloud-init and a human SSH session. claude-mem picks its
+own recommended defaults when stdin is not a TTY:
+
+| Setting | Default |
+|---|---|
+| IDE | `claude-code` |
+| Runtime | `worker` |
+| Provider | `claude` |
+| Auth method | `subscription` (uses the logged-in `claude` CLI account) |
+| Model | `claude-haiku-4-5-20251001` (cheap/fast for compression) |
+| Worker auto-start | skipped during install; role starts it explicitly afterwards |
+
+**First-login caveat**: subscription auth requires the `claude` CLI on
+the host to be logged in. On a fresh devbox the worker installs and
+starts, but claude-mem can't compress anything until you log into
+Claude Code once:
+
+```bash
+tailscale ssh luis@devbox
+claude   # complete the OAuth flow on first launch
+```
+
+**Overrides** (don't remove the stdin redirect — pass flags instead):
+
+```bash
+# In role 70, replace the install line with whichever override you need:
+as_user 'mise exec node -- npx --yes claude-mem install \
+  --ide claude-code \
+  --provider claude \
+  --model claude-sonnet-4-6 \
+  --no-auto-start </dev/null'
+
+# Or for API-key auth instead of subscription:
+as_user 'CLAUDE_MEM_CLAUDE_AUTH_METHOD=api-key \
+         ANTHROPIC_API_KEY=sk-ant-... \
+         mise exec node -- npx --yes claude-mem install --no-auto-start </dev/null'
+```
+
+### Sandbox
+
+Use the built-in sandbox:
 
 ```bash
 cd ~/path/to/repo

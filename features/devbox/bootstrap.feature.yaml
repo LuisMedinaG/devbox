@@ -160,6 +160,16 @@ components:
     requirements:
       1: Installs @anthropic-ai/claude-code globally via npm as the interactive user
       2: Installs the claude-mem MCP server (npx --yes claude-mem install) into the user's plugin cache when not already present
+      2-1: claude-mem install MUST run non-interactively — stdin is redirected from /dev/null at the call site so the same code path works whether bootstrap is launched by cloud-init or a human SSH session
+      2-2: Non-interactive install accepts these recommended defaults (sourced from claude-mem's own !isTTY branch in dist/npx-cli/index.js):
+        - ide=claude-code
+        - runtime=worker
+        - provider=claude
+        - auth_method=subscription
+        - model=claude-haiku-4-5-20251001
+      2-3: Worker auto-start is disabled during install (--no-auto-start); the role starts the worker explicitly afterwards via `claude-mem start` so it is running when bootstrap finishes
+      2-4: Subscription auth requires the user to be logged into the `claude` CLI on the host before claude-mem can compress observations; first login is a manual post-bootstrap step (interactive `claude` invocation)
+      2-5: Overrides for non-default config are passed as install flags (--ide, --provider, --model) or env vars (CLAUDE_MEM_CLAUDE_AUTH_METHOD, ANTHROPIC_API_KEY) — never by removing the stdin redirect
 
   OLLAMA:
     name: Local LLM Server
