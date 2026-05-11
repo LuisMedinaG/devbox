@@ -37,6 +37,7 @@ components:
       4-note: fail2ban runs even when SKIP_FIREWALL=1; that flag only suppresses UFW
       7: When SKIP_SSH_HARDENING=1 (or DEV_MODE=1), the sshd_config drop-in is NOT written and any previous one is removed
       7-note: Dev-only escape hatch — leaves Hetzner-default sshd (root login + password auth); fail2ban still runs
+      7-1: tests/e2e.bats detects DEV_MODE state from on-disk artifacts (presence of /etc/ssh/sshd_config.d/10-hardening.conf, `ufw status`) and skips the affected hardening/UFW assertions accordingly — tests do not read bootstrap-time env vars
 
   TAILSCALE:
     name: Tailscale Networking
