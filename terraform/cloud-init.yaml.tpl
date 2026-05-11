@@ -9,18 +9,55 @@
 #   USER_PASSWORD — intentionally NOT included. Set the user password by hand
 #     after first login (`passwd <user>` over Tailscale SSH). Storing a long-
 #     lived secret in user_data would expose it via the Hetzner API forever.
+#
+# Debug surfaces this template creates on the box:
+#   /etc/devbox-bootstrap.env   exact env vars used (re-sourceable, mode 600)
+#   /usr/local/bin/devbox-rerun helper to re-run bootstrap with the original env
+#   /var/log/bootstrap/STATE    "running" → "ok" or "failed" — fast health check
 package_update: true
 packages:
   - git
+write_files:
+  - path: /etc/devbox-bootstrap.env
+    permissions: '0600'
+    owner: root:root
+    content: |
+      # Bootstrap environment from Terraform / cloud-init. Re-sourceable.
+      # Edit this file and run `devbox-rerun` to retry with different values.
+      export USERNAME='${username}'
+      export MACHINE_NAME='${hostname}'
+      export TS_TAG='${ts_tag}'
+      export TS_AUTHKEY='${ts_authkey}'
+      export DOTFILES_REPO='${dotfiles_repo}'
+      export DEV_MODE='${dev_mode}'
+  - path: /usr/local/bin/devbox-rerun
+    permissions: '0755'
+    owner: root:root
+    content: |
+      #!/usr/bin/env bash
+      # Re-run bootstrap (or a single role) with the env vars cloud-init injected.
+      # Usage: devbox-rerun                # run full bootstrap
+      #        devbox-rerun 80-dotfiles    # run a single role
+      set -euo pipefail
+      [[ $EUID -eq 0 ]] || { echo "Must run as root." >&2; exit 1; }
+      # shellcheck disable=SC1091
+      source /etc/devbox-bootstrap.env
+      cd /root/projects/devbox
+      git pull --ff-only || echo "[warn] git pull failed — running with local tree." >&2
+      bash bootstrap/bootstrap.sh "$@"
 runcmd:
-  - mkdir -p /root/projects
+  - mkdir -p /var/log/bootstrap /root/projects
+  - echo "running" > /var/log/bootstrap/STATE
   - git clone ${devbox_repo} /root/projects/devbox
   - |
-    cd /root/projects/devbox && \
-    USERNAME='${username}' \
-    MACHINE_NAME='${hostname}' \
-    TS_TAG='${ts_tag}' \
-    TS_AUTHKEY='${ts_authkey}' \
-    DOTFILES_REPO='${dotfiles_repo}' \
-    DEV_MODE='${dev_mode}' \
-    bash bootstrap/bootstrap.sh
+    set -o pipefail
+    cd /root/projects/devbox
+    # shellcheck disable=SC1091
+    source /etc/devbox-bootstrap.env
+    if bash bootstrap/bootstrap.sh; then
+      echo "ok" > /var/log/bootstrap/STATE
+    else
+      rc=$?
+      echo "failed:$rc" > /var/log/bootstrap/STATE
+      exit "$rc"
+    fi

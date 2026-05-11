@@ -59,10 +59,33 @@ Terraform: `USERNAME`, `MACHINE_NAME`, `TS_TAG`, `TS_AUTHKEY`, `DOTFILES_REPO`.
 the lifetime of the server (readable via the API), so a long-lived password
 there would leak indefinitely. Set it manually post-bootstrap.
 
-If cloud-init fails part-way, ssh in and re-run bootstrap by hand:
+### Debugging a stuck or failed bootstrap
+
+Cloud-init creates three debug surfaces on the box:
+
+| Path | Purpose |
+|---|---|
+| `/var/log/bootstrap/STATE` | One-line health: `running` → `ok` or `failed:<rc>` |
+| `/etc/devbox-bootstrap.env` (root-only) | Exact env vars cloud-init injected — re-sourceable |
+| `/usr/local/bin/devbox-rerun [role...]` | Re-runs bootstrap with the same env; pulls latest first |
+
+Common recipes:
 
 ```bash
-cd /root/projects/devbox && bash bootstrap/bootstrap.sh
+# Did bootstrap finish?
+ssh root@<ip> cat /var/log/bootstrap/STATE
+
+# What env was injected?
+ssh root@<ip> cat /etc/devbox-bootstrap.env
+
+# Re-run full bootstrap (role cache skips completed roles)
+ssh root@<ip> devbox-rerun
+
+# Re-run just one role after fixing it
+ssh root@<ip> devbox-rerun 80-dotfiles
+
+# Force a clean re-run of a specific role
+ssh root@<ip> 'rm /var/lib/bootstrap/cache/80-dotfiles.sha256 && devbox-rerun 80-dotfiles'
 ```
 
 ---

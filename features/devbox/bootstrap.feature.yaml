@@ -130,6 +130,9 @@ components:
       8-note: Both cleanup resources call a shared script terraform/scripts/tailscale-device.sh that performs OAuth token exchange and device deletion via the Tailscale API
       9: Cloud-init user_data drives bootstrap.sh on first boot — clones the devbox repo and runs bootstrap with USERNAME, MACHINE_NAME, TS_TAG, TS_AUTHKEY, and DOTFILES_REPO injected from Terraform variables
       9-note: hcloud_server.lifecycle.ignore_changes = [user_data] prevents auth-key churn on re-apply from forcing a server replacement; cloud-init only runs on first boot regardless
+      9-1: Cloud-init writes /etc/devbox-bootstrap.env (mode 0600) with the injected env vars so re-runs can source it instead of mining /var/lib/cloud/instance/user-data.txt
+      9-2: Cloud-init installs /usr/local/bin/devbox-rerun — a helper that sources the env file, pulls latest, and re-runs bootstrap (or a single role)
+      9-3: Cloud-init writes /var/log/bootstrap/STATE with a single-line marker (`running`, `ok`, or `failed:<rc>`) — fast health check without parsing log output
       10: USER_PASSWORD is intentionally NOT injected via cloud-init — Hetzner stores user_data for the lifetime of the server (readable via the API), so long-lived secrets must be set manually post-bootstrap
       10-note: Acceptable trade-off for TS_AUTHKEY because it has 1-hour expiry and single-device-join scope; documented in cloud-init.yaml.tpl header and README
 

@@ -121,6 +121,10 @@ sudo ./bootstrap/bootstrap.sh svc-ollama
 - **Bootstrap defaults**: `USERNAME` auto-detected from `$SUDO_USER` (override explicitly if needed), `TIMEZONE=America/Mexico_City`, `MACHINE_NAME=devbox`, `TS_TAG=tag:${MACHINE_NAME}`, `SKIP_FIREWALL=0`, `SKIP_SSH_HARDENING=0`, `DEV_MODE=0`.
 - **`DEV_MODE=1`** (or Terraform `dev_mode = true`): umbrella escape hatch that sets `SKIP_FIREWALL=1` and `SKIP_SSH_HARDENING=1` so public root SSH stays usable. fail2ban still runs. **Never leave on for a long-lived host** — Hetzner IPs are scanned within minutes.
 - **Logs**: `/var/log/bootstrap/bootstrap-YYYYMMDD-HHMMSS.log` — check here first on failure. When provisioned via Terraform, also check `/var/log/cloud-init-output.log` for first-boot orchestration output.
+- **Cloud-init debug surfaces** (created on the box by `terraform/cloud-init.yaml.tpl`):
+  - `/var/log/bootstrap/STATE` — single-line health: `running` → `ok` or `failed:<rc>`.
+  - `/etc/devbox-bootstrap.env` (root-only) — exact env vars cloud-init injected; re-sourceable.
+  - `/usr/local/bin/devbox-rerun [role...]` — re-runs bootstrap with the same env vars; pulls latest first. Pass role names for a single-role re-run.
 - **Cloud-init secrets policy**: `TS_AUTHKEY` is OK to embed in `user_data` (1-hour expiry). `USER_PASSWORD` is intentionally never embedded — Hetzner stores `user_data` for the lifetime of the server, so long-lived secrets must be set manually post-bootstrap.
 - **claude-mem non-interactive install** (role 70): stdin is redirected from `/dev/null` so the installer runs silently. Defaults picked (mirror of claude-mem's `!isTTY` branch): ide=`claude-code`, runtime=`worker`, provider=`claude`, auth=`subscription`, model=`claude-haiku-4-5-20251001`. Worker is started explicitly after install. Subscription auth needs a logged-in `claude` CLI on the host — first login is a manual post-bootstrap step. To override, pass `--ide` / `--provider` / `--model` flags or set `CLAUDE_MEM_CLAUDE_AUTH_METHOD` / `ANTHROPIC_API_KEY` — do NOT remove the stdin redirect.
 
