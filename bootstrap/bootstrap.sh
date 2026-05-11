@@ -144,40 +144,32 @@ if ! tailscale status >/dev/null 2>&1; then
 fi
 
 log ""
-log "=== NEXT STEPS ==="
+log "=== POST-BOOTSTRAP ==="
+log ""
+log "Logs: $LOG_FILE"
 log ""
 
-STEP=0
-
 if [[ -n "$NEEDS_REBOOT" ]]; then
-  (( ++STEP ))
-  log "${STEP}. REBOOT (kernel updates applied):"
-  log "   reboot"
+  log "• REBOOT required (kernel updates)"
   log ""
 fi
 
 if [[ -n "$NEEDS_TAILSCALE" ]]; then
-  (( ++STEP ))
-  log "${STEP}. CONNECT TAILSCALE:"
-  log "   sudo tailscale up --ssh --hostname $MACHINE_NAME --advertise-tags=$TS_TAG"
+  log "• Tailscale not connected"
+  log "  sudo tailscale up --ssh --hostname $MACHINE_NAME --advertise-tags=$TS_TAG"
   log ""
 fi
 
 if [[ -n "$NEEDS_DOTFILES" ]]; then
-  (( ++STEP ))
-  log "${STEP}. DEPLOY DOTFILES:"
-  log "   sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles"
-  log ""
-  log "   If the public HTTPS clone fails, add the SSH key role 80 printed"
-  log "   above to GitHub and re-run the same command."
+  log "• Dotfiles not deployed"
+  log "  sudo bash ~/projects/devbox/bootstrap/bootstrap.sh 80-dotfiles"
   log ""
 fi
 
 if [[ -z "$_passwd_provided" ]]; then
-  (( ++STEP ))
-  log "${STEP}. SET A PASSWORD for $USERNAME (required for sudo):"
-  log "   passwd $USERNAME"
+  log "• No password set for $USERNAME"
+  log "  passwd $USERNAME"
   log ""
 fi
-log "Reconnect after reboot: tailscale ssh $USERNAME@$MACHINE_NAME"
-log "Or via Tailscale IP:    ssh $USERNAME@<ip-from-tailscale-status>"
+
+log "Reconnect: tailscale ssh $USERNAME@$MACHINE_NAME"
