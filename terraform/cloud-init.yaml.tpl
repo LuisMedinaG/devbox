@@ -14,9 +14,6 @@
 #   /etc/devbox-bootstrap.env   exact env vars used (re-sourceable, mode 600)
 #   /usr/local/bin/devbox-rerun helper to re-run bootstrap with the original env
 #   /var/log/bootstrap/STATE    "running" → "ok" or "failed" — fast health check
-package_update: true
-packages:
-  - git
 write_files:
   - path: /etc/devbox-bootstrap.env
     permissions: '0600'
@@ -64,5 +61,7 @@ write_files:
 runcmd:
   - mkdir -p /var/log/bootstrap /root/projects
   - echo "running" > /var/log/bootstrap/STATE
+  - apt-get update -q
+  - apt-get install -y git
   - git clone ${devbox_repo} /root/projects/devbox
   - bash /usr/local/bin/devbox-bootstrap
