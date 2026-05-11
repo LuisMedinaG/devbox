@@ -53,7 +53,14 @@ enable_service() {
 }
 
 reload_sshd() {
-  systemctl reload ssh
+  # Ubuntu 24.04 ships sshd as socket-activated (ssh.socket): ssh.service only
+  # runs while a connection is open and is otherwise inactive. A `reload` on
+  # an inactive unit returns non-zero, which would abort bootstrap under
+  # `set -e`. Skipping the reload is safe — each socket-spawned sshd re-reads
+  # /etc/ssh/sshd_config.d/* on connect.
+  if systemctl is-active --quiet ssh; then
+    systemctl reload ssh
+  fi
 }
 
 # Download a URL to a destination path and verify its sha256 checksum.
