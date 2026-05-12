@@ -1,0 +1,46 @@
+feature:
+  name: tools
+  product: devbox
+  description: Core CLI toolchain, shell configuration, and pinned language runtimes.
+
+components:
+  DEV_TOOLS:
+    name: Developer Tools
+    description: Role 40-dev-tools — installs the core CLI toolchain.
+    requirements:
+      1: Installs git, tmux, zsh, ripgrep, fzf, btop, neovim, zoxide, eza, python3, mosh, yadm, pipx
+
+  SHELL:
+    name: Shell Configuration
+    description: Role 50-shell — sets zsh as the default shell and writes machine-specific PATH entries.
+    requirements:
+      1: Sets zsh as the default shell for USERNAME
+      2: Creates an empty ~/.zshrc if one does not exist, so yadm clone has a file to replace
+      2-note: Bootstrap must not write any config into ~/.zshrc itself; dotfiles own that file
+      3: Writes machine-specific PATH entries (fnm, cargo, go, ~/.local/bin) to ~/.zshrc.local, not to files tracked by dotfiles
+      4: Sets zsh as the default shell for root and writes a minimal /root/.zshrc (history, prompt, guarded aliases for eza/nvim); no plugins, no mise, no user-scoped paths
+
+  LANGS:
+    name: Language Runtimes
+    description: Role 60-langs — installs pinned language runtimes with sha256 verification.
+    requirements:
+      1: Installs fnm (Fast Node Manager) at the version pinned in versions.conf, then installs and defaults the latest LTS Node
+      2: Installs uv and uvx (Python toolchain) at the version pinned in versions.conf
+      3: Installs Bun at the version pinned in versions.conf
+      4: Installs Rust via a pinned rustup-init binary
+      5: Installs Go at the version pinned in versions.conf to /usr/local/go
+      6: Aborts if any sha256 hash entry in versions.conf is empty or missing
+      7: Verifies the sha256 of every downloaded artifact before executing or extracting it; aborts on mismatch
+      7-note: Downloads are skipped if the file is already present and the hash matches, making re-runs fast
+      8: Supports both amd64 and arm64 architectures; aborts on any other architecture
+
+  VERSIONS:
+    name: Version Management
+    description: bootstrap/update-versions.sh — checks and updates pinned runtime versions in config/versions.conf.
+    requirements:
+      1: In check mode (default), reports which tools are up to date and which have a newer upstream release
+      2: In update mode (--update flag), rewrites versions.conf in place with new versions and sha256 hashes
+      3: Supports filtering to a single tool by passing its name as an argument
+      4: Fetches upstream release info without executing downloaded artifacts (hash-only fetch for sha256 computation)
+      5: Validates that fetched versions are valid semver before writing; skips tools where the upstream version cannot be parsed
+      6: Supports GITHUB_TOKEN to avoid API rate limiting when fetching GitHub release metadata

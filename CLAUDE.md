@@ -24,6 +24,46 @@ Loaded automatically based on the files being edited — no action needed:
 | `.claude/rules/terraform.md` | `terraform/**` — Terraform owns the server resource only, no OS config |
 | `.claude/rules/tests.md` | `tests/**` — ACID references required, tests run on host |
 
+## NixOS Config Workflow
+
+NixOS configuration lives in `nixos/`. The flake is the entry point:
+
+```bash
+# Validate flake syntax (run from repo root)
+nix flake show
+
+# Update all flake inputs to latest
+nix flake update
+
+# Deploy to a running NixOS devbox over SSH
+nix run .#nixos-anywhere -- --flake .#devbox root@<ip>
+
+# Rebuild on the devbox itself (after ssh'ing in)
+sudo nixos-rebuild switch --flake /path/to/devbox#devbox
+```
+
+**Where things live:**
+
+| Path | Purpose |
+|---|---|
+| `flake.nix` | Inputs (nixpkgs 25.05, home-manager, sops-nix, nixos-anywhere) |
+| `nixos/hosts/devbox/default.nix` | Host entry point — imports all modules |
+| `nixos/modules/<name>.nix` | One module per bootstrap role |
+| `nixos/home/luis.nix` | home-manager config for the interactive user |
+| `secrets/.sops.yaml` | sops age key registration; run `age-keygen` on first boot |
+
+**Adding a new module:**
+1. Create `nixos/modules/<name>.nix` — use `{ config, lib, pkgs, ... }: { }` as the base.
+2. Add it to the `imports` list in `nixos/hosts/devbox/default.nix`.
+3. Add ACID comment references matching `features/devbox/*.feature.yaml`.
+4. Test: `sudo nixos-rebuild build` on a NixOS VM before deploying.
+
+**Secrets workflow (sops-nix):**
+1. Generate the host age key on first boot: `age-keygen -o /root/age/identity.txt`.
+2. Copy the public key into `secrets/.sops.yaml` under `keys:`.
+3. Create/edit secrets: `sops secrets/devbox/<name>.yaml`.
+4. Reference in a module: `sops.secrets."<name>".owner = "...";`
+
 ## Slash commands
 
 - `/update-docs` — audits `CLAUDE.md` and `AGENTS.md` against the current role scripts and proposes specific corrections. Run after any session where roles were added, removed, or meaningfully changed.
