@@ -25,3 +25,26 @@ ZSHRC_LOCAL="$HOME_DIR/.zshrc.local"
 ensure_line 'export PATH="$HOME/.local/bin:$PATH"' "$ZSHRC_LOCAL"
 ensure_line 'eval "$(mise activate zsh)"' "$ZSHRC_LOCAL"
 chown "$USERNAME":"$USERNAME" "$ZSHRC_LOCAL"
+
+# bootstrap.SHELL.4 — minimal zsh for root (no plugins, no mise, no user paths)
+ROOT_ZSH="$(command -v zsh)"
+if [[ "$(getent passwd root | cut -d: -f7)" != "$ROOT_ZSH" ]]; then
+  chsh -s "$ROOT_ZSH" root
+fi
+
+cat >/root/.zshrc <<'EOF'
+# History
+HISTFILE=~/.zsh_history
+HISTSIZE=10000
+SAVEHIST=10000
+setopt HIST_IGNORE_DUPS HIST_IGNORE_SPACE SHARE_HISTORY
+
+# Prompt: user@host path #
+autoload -Uz promptinit && promptinit
+PS1='%F{red}%n@%m%f %F{cyan}%~%f %# '
+
+# Aliases (guarded — tools may not be installed)
+command -v eza  >/dev/null 2>&1 && alias ls='eza --group-directories-first'
+command -v nvim >/dev/null 2>&1 && alias vim='nvim' && alias vi='nvim'
+alias ll='ls -lah'
+EOF

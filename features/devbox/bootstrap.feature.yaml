@@ -98,6 +98,7 @@ components:
       2: Creates an empty ~/.zshrc if one does not exist, so yadm clone has a file to replace
       2-note: Bootstrap must not write any config into ~/.zshrc itself; dotfiles own that file
       3: Writes machine-specific PATH entries (fnm, cargo, go, ~/.local/bin) to ~/.zshrc.local, not to files tracked by dotfiles
+      4: Sets zsh as the default shell for root and writes a minimal /root/.zshrc (history, prompt, guarded aliases for eza/nvim); no plugins, no mise, no user-scoped paths
 
   LANGS:
     name: Language Runtimes
