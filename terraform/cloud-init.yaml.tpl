@@ -55,7 +55,7 @@ runcmd:
   # and flake.lock must be committed before this can succeed.
   #
   # nix run github:nix-community/nixos-anywhere -- \
-  #   --flake github:${devbox_repo_owner}/devbox#devbox \
+  #   --flake github:<your-org>/devbox#devbox \
   #   --target-host root@localhost
   #
   # For now, write STATE=ok so health checks pass during scaffolding.
