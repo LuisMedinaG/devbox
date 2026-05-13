@@ -39,11 +39,33 @@ bootstrap/
     versions.conf    Pinned versions + sha256 for every downloaded binary
     ssh-authorized-keys.example
 
+nixos/               NixOS flake configuration (Phase 1 scaffold; implemented in Phase 2)
+  hosts/devbox/
+    default.nix      Host entry point — imports all modules, sets hostname + stateVersion
+  modules/           One .nix module per bootstrap role
+    base.nix         bootstrap.SYSTEM — timezone, swap, sysctl, log rotation
+    users.nix        bootstrap.USER — user creation, SSH keys, sudo
+    hardening.nix    bootstrap.HARDENING — openssh options, fail2ban
+    tailscale.nix    bootstrap.TAILSCALE — services.tailscale, sops auth key
+    firewall.nix     bootstrap.FIREWALL — nftables, restrict SSH to CGNAT
+    dev-tools.nix    bootstrap.DEV_TOOLS + LANGS — CLI packages, language runtimes
+    podman.nix       bootstrap.DOCKER — rootless Podman, user socket, compose shim
+    caddy.nix        bootstrap.CADDY — services.caddy, conf.d pattern
+    shell.nix        bootstrap.SHELL — programs.zsh, machine PATH entries
+    claude-code.nix  bootstrap.CLAUDE_CODE — npm install + claude-mem activation
+    dotfiles.nix     bootstrap.DOTFILES — yadm clone + bootstrap activation
+    ollama.nix       bootstrap.OLLAMA — services.ollama (opt-in)
+  home/
+    luis.nix         home-manager entry point for the interactive user
+flake.nix            Flake inputs: nixpkgs 25.05, home-manager, sops-nix, nixos-anywhere
+secrets/
+  .sops.yaml         age key registration; per-host keys generated on first boot
+
 terraform/
   main.tf            Hetzner server + Tailscale auth-key + device cleanup resources
-  cloud-init.yaml.tpl First-boot template that runs bootstrap.sh with vars injected
+  cloud-init.yaml.tpl First-boot template: generates age key, invokes nixos-anywhere
   scripts/           tailscale-device.sh — shared by pre-flight + destroy cleanup
-features/devbox/     Spec files (*.feature.yaml) with ACIDs
+features/devbox/     Spec files (*.feature.yaml) with ACIDs — split by domain
 tests/e2e.bats       Post-bootstrap assertions — run on the host, not Mac
 ```
 

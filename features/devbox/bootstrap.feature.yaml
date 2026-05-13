@@ -1,7 +1,13 @@
 feature:
   name: bootstrap
   product: devbox
-  description: Idempotent provisioning system for a fresh Ubuntu 24.04 host. Runs as root and sets up system baseline, user, security hardening, networking, dev tools, container runtime, shell, and language runtimes.
+  deprecated: true
+  description: >
+    DEPRECATED — split into domain files (see Phase 1 NixOS migration, issue #38).
+    This file is kept for ACID backward-compatibility only; do not add new requirements here.
+    Domain files: system.feature.yaml, security.feature.yaml, network.feature.yaml,
+    tools.feature.yaml, containers.feature.yaml, services.feature.yaml,
+    apps.feature.yaml, infra.feature.yaml, nixos-migration.feature.yaml.
 
 components:
   SYSTEM:

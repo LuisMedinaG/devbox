@@ -4,7 +4,7 @@ Personal cloud dev box running Claude Code on Hetzner. Persistent tmux
 sessions, survives disconnects. Access via Tailscale SSH or Mosh.
 
 - **Machine**: CX23 (2 vCPU, 4 GB RAM, 40 GB SSD), location `nbg1`
-- **OS**: Ubuntu 24.04
+- **OS**: NixOS 25.05 (migrating from Ubuntu 24.04 — see `nixos/`)
 - **Access**: Tailscale SSH (primary), Mosh (mobile)
 
 ---
@@ -18,7 +18,9 @@ export HCLOUD_TOKEN=<hetzner-api-token>
 cd terraform && terraform apply
 ```
 
-Cloud-init drives `bootstrap.sh` on first boot — no manual SSH step.
+Cloud-init runs on first boot: generates the host age key for secrets, then
+invokes `nixos-anywhere` to install NixOS from the flake. No manual SSH step.
+
 Watch progress (~5–10 min):
 
 ```bash
@@ -29,6 +31,33 @@ ssh root@$(terraform output -raw ipv4) cloud-init status --wait
 
 Run `terraform output next_steps` for the same commands templated with the
 correct IP and username.
+
+### NixOS provisioning details
+
+The NixOS flake lives at `flake.nix`. The host configuration is in
+`nixos/hosts/devbox/default.nix`, which imports all 12 modules under
+`nixos/modules/`. Secrets (Tailscale auth key, etc.) are encrypted with
+`sops-nix` using an age key generated on first boot.
+
+**Re-deploy config changes to a running box:**
+
+```bash
+# From your Mac (uses nixos-anywhere under the hood)
+nix run .#nixos-anywhere -- --flake .#devbox root@<tailscale-ip>
+
+# Or on the box itself
+sudo nixos-rebuild switch --flake /path/to/devbox#devbox
+```
+
+**Manage secrets:**
+
+```bash
+# Edit a secret (encrypts on save)
+sops secrets/devbox/tailscale-authkey.yaml
+
+# After rotating the host age key: re-encrypt all secrets
+sops updatekeys secrets/devbox/*.yaml
+```
 
 ### After bootstrap finishes
 

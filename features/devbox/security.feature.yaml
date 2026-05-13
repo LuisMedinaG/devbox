@@ -1,0 +1,28 @@
+feature:
+  name: security
+  product: devbox
+  description: SSH hardening, fail2ban, and firewall rules. Hardening runs before firewall; firewall runs after Tailscale.
+
+components:
+  HARDENING:
+    name: SSH and Service Hardening
+    description: Role 20-hardening — SSH drop-in config and fail2ban. UFW is handled separately by role 31-firewall, which runs after Tailscale to prevent lock-out.
+    requirements:
+      1: Disables root login over SSH
+      2: Disables password authentication over SSH; public key only
+      3: Disables X11 forwarding
+      4: Configures and enables fail2ban with the sshd jail active
+      4-note: fail2ban runs even when SKIP_FIREWALL=1; that flag only suppresses UFW
+      7: When SKIP_SSH_HARDENING=1 (or DEV_MODE=1), the sshd_config drop-in is NOT written and any previous one is removed
+      7-note: Dev-only escape hatch — leaves Hetzner-default sshd (root login + password auth); fail2ban still runs
+      7-1: tests/e2e.bats detects DEV_MODE state from on-disk artifacts (presence of /etc/ssh/sshd_config.d/10-hardening.conf, `ufw status`) and skips the affected hardening/UFW assertions accordingly — tests do not read bootstrap-time env vars
+
+  FIREWALL:
+    name: Firewall (UFW)
+    description: Role 31-firewall — runs after Tailscale so public SSH is never closed before the Tailscale overlay is available.
+    requirements:
+      1: Activates UFW with default deny-incoming policy
+      2: Opens SSH (port 22) and Mosh (UDP 60000-61000) in UFW
+      2-note: UFW initialization is skipped if already active, to preserve rules added by later roles
+      3: Once Tailscale is connected, restricts port 22 to the Tailscale CGNAT range (100.64.0.0/10) and removes the broad OpenSSH UFW rule
+      3-note: If Tailscale is not connected, port 22 remains open and a warning is emitted; re-running ensures recovery is always possible

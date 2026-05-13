@@ -1,0 +1,62 @@
+feature:
+  name: nixos-migration
+  product: devbox
+  description: Four-phase plan to migrate the devbox from Ubuntu+bash-bootstrap to NixOS+flakes. Each phase has a dedicated GitHub issue and branch. All existing bootstrap.* ACIDs are preserved in the module stubs and will be implemented in Phase 2.
+
+components:
+  NIXOS_PHASE1:
+    name: Phase 1 — Scaffold NixOS Config Structure
+    description: Create the nixos/ directory, flake.nix, empty module stubs, host entry point, home-manager stub, and sops secrets template. Update Terraform cloud-init to reference nixos-anywhere. Split bootstrap.feature.yaml into domain files. GitHub issue #38.
+    requirements:
+      1: Create nixos/ directory with hosts/devbox/, modules/, and home/ subdirectories
+      2: Write flake.nix with locked inputs — nixpkgs (nixos-25.05), home-manager, sops-nix, nixos-anywhere
+      3: Create 12 empty module stubs in nixos/modules/ — one per bootstrap role (base, users, hardening, tailscale, firewall, dev-tools, podman, caddy, shell, claude-code, dotfiles, ollama)
+      4: Create nixos/hosts/devbox/default.nix as the NixOS entry point, importing all module stubs
+      5: Create nixos/home/luis.nix as the home-manager entry point stub
+      6: Create secrets/.sops.yaml with age key placeholder and creation rules
+      7: Split features/devbox/bootstrap.feature.yaml into 8 domain files preserving all ACIDs
+      8: Update terraform/cloud-init.yaml.tpl to minimal bootstrap — create user, generate age key, invoke nixos-anywhere
+      9: Verify nix flake show runs without errors and commit flake.lock
+      10: Update CLAUDE.md, AGENTS.md, and README.md to document the nixos/ structure
+
+  NIXOS_PHASE2:
+    name: Phase 2 — Port Bash Roles to NixOS Modules
+    description: Implement all 12 module stubs in order of complexity. Each module maps directly to a bash role and carries the same ACID references. GitHub issue #39.
+    requirements:
+      1: Implement base.nix — timezone, swap, sysctl, log rotation, MOTD suppression, unattended-upgrades (bootstrap.SYSTEM.1-6)
+      2: Implement users.nix — users.users, SSH keys, sudo rules, loginctl linger (bootstrap.USER.1-4)
+      3: Implement hardening.nix — services.openssh options, services.fail2ban (bootstrap.HARDENING.1-7)
+      4: Implement tailscale.nix — services.tailscale, sops secret for auth key (bootstrap.TAILSCALE.1-5)
+      5: Implement firewall.nix — networking.firewall / nftables, restrict SSH to CGNAT (bootstrap.FIREWALL.1-3)
+      6: Implement dev-tools.nix — environment.systemPackages for core CLI tools (bootstrap.DEV_TOOLS.1)
+      7: Implement podman.nix — virtualisation.podman, user socket, subuid/subgid, compose shim (bootstrap.DOCKER.1-7)
+      8: Implement caddy.nix — services.caddy, Caddyfile, conf.d pattern, open ports (bootstrap.CADDY.1-5)
+      9: Implement shell.nix — programs.zsh, default shell, machine PATH via zshrc.local (bootstrap.SHELL.1-4)
+      10: Implement claude-code.nix — activation script for npm install + claude-mem (bootstrap.CLAUDE_CODE.1-2)
+      11: Implement dotfiles.nix — activation script for yadm clone + bootstrap (bootstrap.DOTFILES.1-5)
+      12: Implement ollama.nix — services.ollama, dedicated system user, Caddy snippet (bootstrap.OLLAMA.1-4)
+      13: Implement home/luis.nix — home-manager config for shell, PATH, dotfiles user-level state
+      14: All modules pass `sudo nixos-rebuild build` on a local NixOS VM without errors
+
+  NIXOS_PHASE3:
+    name: Phase 3 — Cloud Deployment with nixos-anywhere
+    description: Provision a live Hetzner VM with NixOS using nixos-anywhere. Validate all modules on real infrastructure. Decommission bash bootstrap after smoke-test passes.
+    requirements:
+      1: Update Terraform to provision a Hetzner server booting into the rescue system, ready for nixos-anywhere
+      2: Run nixos-anywhere --flake .#devbox from the deploying machine to install NixOS on the server
+      3: Validate post-install state matches all ACID assertions from Phase 2 modules
+      4: Confirm Tailscale enrolls, firewall applies, and SSH hardening is active
+      5: Confirm Claude Code, dotfiles, Podman, and Caddy are present and functional
+      6: Archive bootstrap/ — move to bootstrap/legacy/ with a README noting NixOS is the active path
+      7: Update Terraform cloud-init to the final nixos-anywhere invocation (no Ubuntu bootstrap fallback)
+
+  NIXOS_PHASE4:
+    name: Phase 4 — Cleanup and Ongoing Maintenance
+    description: Remove Ubuntu bootstrap artifacts, establish NixOS update workflow, and document the final architecture.
+    requirements:
+      1: Remove legacy bootstrap/ directory after Phase 3 validation confirms NixOS is stable
+      2: Set up nixos-rebuild switch workflow — document how to apply config changes to a running devbox
+      3: Document sops secret rotation workflow — re-encrypt secrets when age keys change
+      4: Add a NixOS update alias/script — nix flake update + nixos-rebuild switch
+      5: Update README.md to reflect NixOS as the only provisioning path
+      6: Close GitHub issues #38 and #39 with a summary of what was implemented

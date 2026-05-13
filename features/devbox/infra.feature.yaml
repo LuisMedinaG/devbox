@@ -1,0 +1,45 @@
+feature:
+  name: infra
+  product: devbox
+  description: Terraform-based Hetzner provisioning, Tailscale device lifecycle, and bootstrap engineering constraints.
+
+components:
+  TERRAFORM:
+    name: Infrastructure Provisioning
+    description: terraform/ — declarative Hetzner Cloud provisioning. A single `terraform apply` creates the server, generates a Tailscale auth key, and drives bootstrap.sh on first boot via cloud-init.
+    requirements:
+      1: Provisions a Hetzner Cloud server with configurable name, type, image, and location
+      2: Attaches SSH keys by referencing existing Hetzner project keys by name, not by uploading them
+      2-note: At least one ssh_key_names entry is required; the validation rejects empty or whitespace-only entries
+      3: Accepts the Hetzner API token via HCLOUD_TOKEN environment variable or terraform.tfvars (gitignored)
+      4: Outputs the server's public IPv4 address after apply
+      5: Single var.hostname controls the Hetzner server name, the Tailscale device hostname, and (when var.tailscale_tag is unset) the derived tag:${hostname} ACL tag
+      5-note: Changing var.hostname requires manual server replacement; the in-place hcloud_server name update will not change the OS hostname inside the box
+      6: Generates a one-time, short-lived Tailscale auth key per apply via tailscale_tailnet_key (preauthorized, non-reusable, non-ephemeral, 1-hour expiry)
+      7: Pre-flight cleanup deletes any existing Tailscale device with the same hostname before the new server joins (null_resource.tailscale_preflight, triggered by hostname/OAuth/tailnet)
+      8: Destroy-time cleanup removes the Tailscale device on `terraform destroy` (null_resource.tailscale_cleanup)
+      8-note: Both cleanup resources call a shared script terraform/scripts/tailscale-device.sh that performs OAuth token exchange and device deletion via the Tailscale API
+      9: Cloud-init user_data drives bootstrap.sh on first boot — clones the devbox repo and runs bootstrap with USERNAME, MACHINE_NAME, TS_TAG, TS_AUTHKEY, and DOTFILES_REPO injected from Terraform variables
+      9-note: hcloud_server.lifecycle.ignore_changes = [user_data] prevents auth-key churn on re-apply from forcing a server replacement; cloud-init only runs on first boot regardless
+      9-1: Cloud-init writes /etc/devbox-bootstrap.env (mode 0600) with the injected env vars so re-runs can source it instead of mining /var/lib/cloud/instance/user-data.txt
+      9-2: Cloud-init installs /usr/local/bin/devbox-rerun — a helper that sources the env file, pulls latest, and re-runs bootstrap (or a single role)
+      9-3: Cloud-init writes /var/log/bootstrap/STATE with a single-line marker (`running`, `ok`, or `failed:<rc>`) — fast health check without parsing log output
+      10: USER_PASSWORD is intentionally NOT injected via cloud-init — Hetzner stores user_data for the lifetime of the server (readable via the API), so long-lived secrets must be set manually post-bootstrap
+      10-note: Acceptable trade-off for TS_AUTHKEY because it has 1-hour expiry and single-device-join scope; documented in cloud-init.yaml.tpl header and README
+
+  ENG:
+    name: Engineering Constraints
+    description: Cross-cutting constraints that apply to all roles and the bootstrap system.
+    requirements:
+      1: Every role is idempotent — safe to re-run on an already-provisioned host without side effects
+      2: Bootstrap runs as root; user-level config (dotfiles) is out of scope and must not be written by any role
+      3: Machine-specific shell state goes in ~/.zshrc.local or ~/.zshenv.local, never in files owned by dotfiles (e.g. .zshrc, .zshenv, .gitconfig)
+      4: All role output (stdout and stderr) is captured to a timestamped log under /var/log/bootstrap/
+      5: Roles run in declared order by default; an arbitrary subset can be passed as arguments to bootstrap.sh
+      6: Docker-style role cache — full default runs skip roles whose script (+ common.sh) sha256 is unchanged since the last successful run; cache lives in /var/lib/bootstrap/cache/
+      6-note: Cache is bypassed when explicit role arguments are passed; a failed role is never cached, so re-runs always retry it
+      6-1: Role-specific skip flags are folded into the cache hash so a flag change invalidates the cache — 20-hardening includes SKIP_SSH_HARDENING, 31-firewall includes SKIP_FIREWALL
+      6-1-note: Prevents a DEV_MODE=1 iteration from poisoning subsequent production runs by silently skipping hardening/firewall on cache hit
+      7: Secrets (TS_AUTHKEY, USER_PASSWORD) are passed inline only to their consuming roles via env -u; never exported globally and never written to log files
+      8: DEV_MODE=1 is an umbrella escape hatch — sets SKIP_FIREWALL=1 and SKIP_SSH_HARDENING=1 so public SSH stays usable during bootstrap iteration; defaults to 0 and emits a loud warning when enabled
+      8-note: Exposed in Terraform as var.dev_mode (bool, default false), threaded through cloud-init

@@ -1,0 +1,27 @@
+feature:
+  name: system
+  product: devbox
+  description: OS-level foundations and user provisioning applied before any other role.
+
+components:
+  SYSTEM:
+    name: System Baseline
+    description: Role 00-system — OS-level foundations applied before any other role.
+    requirements:
+      1: Sets the host timezone from the TIMEZONE environment variable
+      2: Enables unattended security upgrades with automatic nightly reboot at 02:00 when no users are logged in
+      3: Creates a 2 GB swapfile if no swap is currently active, and persists it in /etc/fstab
+      4: Configures sysctl for low swappiness (10), BBR TCP congestion control, and FQ qdisc
+      5: Rotates bootstrap logs weekly, keeping 8 weeks of history
+      6: Suppresses MOTD noise (pending-update counts, ESM ads, release-upgrade nags) since unattended-upgrades handles patching
+
+  USER:
+    name: User Provisioning
+    description: Role 10-user — creates the interactive user and configures SSH access.
+    requirements:
+      1: Creates the user defined by USERNAME if it does not already exist
+      2: Enables systemd linger for the user so user services survive logout
+      3: Grants only a narrow sudo allowlist — no NOPASSWD:ALL
+      3-note: Only /usr/bin/apt-get update is allowed without a password
+      4: Installs SSH authorized keys from config/ssh-authorized-keys, falling back to /root/.ssh/authorized_keys if not present
+      4-1: Aborts if no SSH key source is available, to prevent lock-out
